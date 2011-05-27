@@ -1,0 +1,24 @@
+.instrumentGrid TABLE {
+	border-collapse: collapse;
+}
+
+.instrumentGrid TD {
+	width: 20px;
+	height: 20px;
+	border: 1px solid #ddd;
+	margin: 0;
+	padding: 0;
+	cursor: pointer;
+}
+
+.instrumentGrid TD.on {
+	background-color: #ff0000;
+}
+
+.instrumentGrid TD:hover {
+	background-color: #eee;
+}
+
+.instrumentGrid TD.on:hover {
+	background-color: #ff8888;
+}
