@@ -1,5 +1,5 @@
 (function() {
-  var Instrument, InstrumentGrid, PitchedInstrument, beat, bpm, instruments, lastBeat, music, position, scales, tick, _i, _results;
+  var Instrument, Jam, JamView, PartView, PitchedInstrument, Player, _i, _results;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
@@ -12,12 +12,8 @@
       if (this[i] === item) return i;
     }
     return -1;
-  };
-  bpm = 300;
-  position = -1;
-  lastBeat = 0;
-  music = [['bass', 'closedhat'], [], [], ['bass'], ['bass'], ['closedhat'], ['bass'], [], ['bass', 'closedhat'], [], [], ['bass'], ['bass'], ['closedhat'], ['bass'], []];
-  scales = {
+  }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  window.scales = {
     "Major Pentatonic": [0, 2, 4, 7, 9]
   };
   Instrument = (function() {
@@ -25,7 +21,7 @@
       this.key = key;
       this.name = name;
     }
-    Instrument.prototype.fileName = function(soundKey, format) {
+    Instrument.prototype.filename = function(soundKey, format) {
       this.soundKey = soundKey;
       this.format = format;
       return "instruments/" + this.key + "/" + this.soundKey + "." + this.format;
@@ -53,24 +49,58 @@
     };
     return PitchedInstrument;
   })();
-  instruments = [
-    new PitchedInstrument("epiano", "E-Piano", (function() {
+  window.instruments = {
+    epiano: new PitchedInstrument("epiano", "E-Piano", (function() {
       _results = [];
       for (_i = 36; _i <= 69; _i++){ _results.push(_i); }
       return _results;
     }).apply(this, arguments))
-  ];
-  lastBeat = 15;
-  InstrumentGrid = (function() {
-    __extends(InstrumentGrid, Backbone.View);
-    function InstrumentGrid() {
-      InstrumentGrid.__super__.constructor.apply(this, arguments);
+  };
+  Jam = (function() {
+    __extends(Jam, Backbone.Model);
+    function Jam() {
+      Jam.__super__.constructor.apply(this, arguments);
     }
-    InstrumentGrid.prototype.className = "instrumentGrid";
-    InstrumentGrid.prototype.events = {
+    Jam.prototype.defaults = {
+      parts: {},
+      scale: "Major Pentatonic",
+      patternLength: 16,
+      speed: 280,
+      parts: {
+        epiano: [[36, 40], [38, 43], [40, 45], [43, 48], [45, 50], [48, 52], [50, 55], [52, 57], [55, 60], [57, 62], [60, 64], [62, 67], [64, 69], [67, 36], [69, 67], [69, 36]]
+      }
+    };
+    Jam.prototype.setPart = function(instrumentKey, part) {
+      var parts;
+      parts = this.get("parts");
+      parts[instrumentKey] = part;
+      return this.set("parts", parts);
+    };
+    Jam.prototype.getPart = function(instrumentKey) {
+      return this.get("parts")[instrumentKey] || [];
+    };
+    return Jam;
+  })();
+  JamView = (function() {
+    __extends(JamView, Backbone.View);
+    function JamView() {
+      JamView.__super__.constructor.apply(this, arguments);
+    }
+    JamView.prototype.render = function() {
+      return $(this.el).html("ahem...");
+    };
+    return JamView;
+  })();
+  PartView = (function() {
+    __extends(PartView, Backbone.View);
+    function PartView() {
+      PartView.__super__.constructor.apply(this, arguments);
+    }
+    PartView.prototype.className = "part";
+    PartView.prototype.events = {
       "click TD": "toggleCell"
     };
-    InstrumentGrid.prototype.render = function() {
+    PartView.prototype.render = function() {
       var beat, note, row, table, _j, _len, _ref;
       table = $('<table />');
       for (beat = 0; 0 <= lastBeat ? beat <= lastBeat : beat >= lastBeat; 0 <= lastBeat ? beat++ : beat--) {
@@ -87,50 +117,151 @@
       }
       return $(this.el).html(table);
     };
-    InstrumentGrid.prototype.toggleCell = function(event) {
+    PartView.prototype.toggleCell = function(event) {
       return $(event.target).toggleClass('on');
     };
-    return InstrumentGrid;
+    return PartView;
   })();
-  beat = function() {
-    var element, needsPlaying, sample, _j, _len, _ref, _results2;
-    position += 1;
-    if (position > 15) {
-      position = 0;
+  Player = (function() {
+    Player.prototype.format = "wav";
+    Player.prototype.tickInterval = 5;
+    function Player() {
+      this.samples = {};
+      this.state = "unprepared";
+      console.log("Player feels woefully unprepared");
     }
-    console.log("beat! pos = " + position);
-    _ref = music[position];
-    _results2 = [];
-    for (_j = 0, _len = _ref.length; _j < _len; _j++) {
-      sample = _ref[_j];
-      element = $("#" + sample)[0];
-      needsPlaying = element.currentTime === 0;
-      element.currentTime = 0;
-      _results2.push(needsPlaying ? element.play() : void 0);
-    }
-    return _results2;
-  };
-  tick = function() {
-    var time;
-    time = (new Date).getTime();
-    if (time - lastBeat >= (1000 / (bpm / 60)) - 3) {
-      lastBeat = time;
-      return beat();
-    }
-  };
-  window.play = function() {
-    return setInterval(tick, 1);
-  };
+    Player.prototype.loadJam = function(jam) {
+      this.beatInterval = 1000 / (jam.get('speed') / 60);
+      this.patternLength = jam.get('patternLength');
+      this.scale = window.scales[jam.get('scale')];
+      this.stageParts(jam.get('parts'));
+      console.log("Player loaded jam");
+      return this.prepare();
+    };
+    Player.prototype.prepare = function(callback) {
+      var audioEl, filename, instrument, key, note, _j, _len, _ref, _ref2;
+      this.prepareCallback = callback;
+      _ref = window.instruments;
+      for (key in _ref) {
+        instrument = _ref[key];
+        _ref2 = instrument.notesForScale(this.scale);
+        for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
+          note = _ref2[_j];
+          filename = instrument.filename(note, this.format);
+          audioEl = $('<audio />').attr('src', filename).data({
+            state: 'loading'
+          });
+          audioEl.bind('canplaythrough', __bind(function(ev) {
+            $(ev.target).data({
+              state: 'ready'
+            });
+            $(ev.target).unbind();
+            console.log("Player loaded " + ev.target.src + "!");
+            if (this.numSamplesLoading() === 0) {
+              this.state = 'ready';
+              console.log("Player ready");
+              if (this.prepareCallback != null) {
+                return this.prepareCallback();
+              }
+            }
+          }, this));
+          this.samples[filename] = audioEl[0];
+          console.log("Player loading " + filename);
+        }
+      }
+      return this.state = "preparing";
+    };
+    Player.prototype.numSamplesLoading = function() {
+      var fn, sample;
+      return ((function() {
+        var _ref, _results2;
+        _ref = this.samples;
+        _results2 = [];
+        for (fn in _ref) {
+          sample = _ref[fn];
+          if ($(sample).data('state') === 'loading') {
+            _results2.push(1);
+          }
+        }
+        return _results2;
+      }).call(this)).length;
+    };
+    Player.prototype.stageParts = function(parts) {
+      this.stagedParts = parts;
+      return console.log("Player staged new parts");
+    };
+    Player.prototype.beginPattern = function() {
+      console.log("Player beginning pattern");
+      this.patternPos = 0;
+      if (this.stagedParts != null) {
+        console.log("Player moved staged parts to main");
+        this.parts = this.stagedParts;
+        return this.stagedParts = null;
+      }
+    };
+    Player.prototype.tick = function() {
+      var time;
+      time = (new Date).getTime();
+      if (time - this.lastBeat >= this.beatInterval) {
+        this.lastBeat = time;
+        return this.beat();
+      }
+    };
+    Player.prototype.beat = function() {
+      var instrument, instrumentKey, needsPlaying, note, part, sample, _ref, _results2;
+      console.log("Player: beat! pos = " + this.patternPos);
+      this.patternPos += 1;
+      if (this.patternPos === this.patternLength) {
+        this.beginPattern();
+      }
+      _ref = this.parts;
+      _results2 = [];
+      for (instrumentKey in _ref) {
+        part = _ref[instrumentKey];
+        instrument = window.instruments[instrumentKey];
+        _results2.push((function() {
+          var _j, _len, _ref2, _results3;
+          _ref2 = part[this.patternPos];
+          _results3 = [];
+          for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
+            note = _ref2[_j];
+            sample = this.samples[instrument.filename(note, this.format)];
+            needsPlaying = sample.currentTime === 0;
+            sample.currentTime = 0;
+            _results3.push(needsPlaying ? sample.play() : void 0);
+          }
+          return _results3;
+        }).call(this));
+      }
+      return _results2;
+    };
+    Player.prototype.play = function() {
+      if (this.state !== "ready") {
+        console.log("Player can't play in this state");
+        return;
+      }
+      this.state = "playing";
+      console.log("Player playing");
+      this.beginPattern();
+      this.lastBeat = 0;
+      return this.tickIntervalID = setInterval(__bind(function() {
+        return this.tick();
+      }, this), this.tickInterval);
+    };
+    Player.prototype.stop = function() {
+      if (this.state !== "playing") {
+        console.log("Player can't stop - it isn't playing");
+        return;
+      }
+      this.state = "ready";
+      return clearInterval(this.tickIntervalID);
+    };
+    return Player;
+  })();
   $(function() {
-    var theGrid, theInstrument, theScale;
     console.log("here goes");
-    theInstrument = instruments[0];
-    theScale = scales["Major Pentatonic"];
-    theGrid = new InstrumentGrid({
-      instrument: theInstrument,
-      scale: theScale
-    });
-    theGrid.render();
-    return $(document.body).append(theGrid.el);
+    window.player = new Player;
+    window.jam = new Jam;
+    return window.player.loadJam(window.jam);
   });
 }).call(this);

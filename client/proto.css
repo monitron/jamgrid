@@ -1,8 +1,8 @@
-.instrumentGrid TABLE {
+.part TABLE {
 	border-collapse: collapse;
 }
 
-.instrumentGrid TD {
+.part TD {
 	width: 20px;
 	height: 20px;
 	border: 1px solid #ddd;
@@ -11,14 +11,14 @@
 	cursor: pointer;
 }
 
-.instrumentGrid TD.on {
+.part TD.on {
 	background-color: #ff0000;
 }
 
-.instrumentGrid TD:hover {
+.part TD:hover {
 	background-color: #eee;
 }
 
-.instrumentGrid TD.on:hover {
+.part TD.on:hover {
 	background-color: #ff8888;
 }
