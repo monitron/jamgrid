@@ -125,6 +125,7 @@
   Player = (function() {
     Player.prototype.format = "wav";
     Player.prototype.tickInterval = 5;
+    Player.prototype.samplePolyphony = 2;
     function Player() {
       this.samples = {};
       this.state = "unprepared";
@@ -139,7 +140,7 @@
       return this.prepare();
     };
     Player.prototype.prepare = function(callback) {
-      var audioEl, filename, instrument, key, note, _j, _len, _ref, _ref2;
+      var audioEl, filename, instrument, key, note, num, _j, _len, _ref, _ref2;
       this.prepareCallback = callback;
       _ref = window.instruments;
       for (key in _ref) {
@@ -148,43 +149,62 @@
         for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
           note = _ref2[_j];
           filename = instrument.filename(note, this.format);
-          audioEl = $('<audio />').attr('src', filename).data({
-            state: 'loading'
-          });
-          audioEl.bind('canplaythrough', __bind(function(ev) {
-            $(ev.target).data({
-              state: 'ready'
-            });
-            $(ev.target).unbind();
-            console.log("Player loaded " + ev.target.src + "!");
-            if (this.numSamplesLoading() === 0) {
-              this.state = 'ready';
-              console.log("Player ready");
-              if (this.prepareCallback != null) {
-                return this.prepareCallback();
-              }
+          this.samples[filename] = (function() {
+            var _ref3, _results2;
+            _results2 = [];
+            for (num = 1, _ref3 = this.samplePolyphony; 1 <= _ref3 ? num <= _ref3 : num >= _ref3; 1 <= _ref3 ? num++ : num--) {
+              audioEl = $('<audio />').attr('src', filename).data('state', 'loading');
+              audioEl.bind('canplaythrough', __bind(function(ev) {
+                var sample;
+                sample = $(ev.target);
+                sample.data('state', 'ready').unbind();
+                console.log("Player loaded " + ev.target.src + "!");
+                sample.bind('ended', function(ev) {
+                  return $(ev.target).data('state', 'ready');
+                });
+                if (this.numSamplesLoading() === 0) {
+                  this.state = 'ready';
+                  console.log("Player ready");
+                  if (this.prepareCallback != null) {
+                    return this.prepareCallback();
+                  }
+                }
+              }, this));
+              console.log("Player loading " + filename);
+              _results2.push(audioEl[0]);
             }
-          }, this));
-          this.samples[filename] = audioEl[0];
-          console.log("Player loading " + filename);
+            return _results2;
+          }).call(this);
         }
       }
       return this.state = "preparing";
     };
     Player.prototype.numSamplesLoading = function() {
-      var fn, sample;
+      var el;
       return ((function() {
-        var _ref, _results2;
-        _ref = this.samples;
+        var _j, _len, _ref, _results2;
+        _ref = _.flatten(this.samples);
         _results2 = [];
-        for (fn in _ref) {
-          sample = _ref[fn];
-          if ($(sample).data('state') === 'loading') {
+        for (_j = 0, _len = _ref.length; _j < _len; _j++) {
+          el = _ref[_j];
+          if ($(el).data('state') === 'loading') {
             _results2.push(1);
           }
         }
         return _results2;
       }).call(this)).length;
+    };
+    Player.prototype.readyElementForSample = function(filename) {
+      var el, _j, _len, _ref;
+      _ref = this.samples[filename];
+      for (_j = 0, _len = _ref.length; _j < _len; _j++) {
+        el = _ref[_j];
+        if ($(el).data('state') === 'ready') {
+          return el;
+        }
+      }
+      console.log("Player sample elements exhausted for " + filename);
+      return null;
     };
     Player.prototype.stageParts = function(parts) {
       this.stagedParts = parts;
@@ -225,10 +245,7 @@
           _results3 = [];
           for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
             note = _ref2[_j];
-            sample = this.samples[instrument.filename(note, this.format)];
-            needsPlaying = sample.currentTime === 0;
-            sample.currentTime = 0;
-            _results3.push(needsPlaying ? sample.play() : void 0);
+            _results3.push((sample = this.readyElementForSample(instrument.filename(note, this.format))) ? ($(sample).data('state', 'playing'), needsPlaying = sample.currentTime === 0, sample.currentTime = 0, needsPlaying ? sample.play() : void 0) : void 0);
           }
           return _results3;
         }).call(this));

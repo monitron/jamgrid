@@ -81,7 +81,8 @@ class PartView extends Backbone.View
 
 class Player
   format: "wav"
-  tickInterval: 5 # Milliseconds between beat checks (ticks)
+  tickInterval: 5    # Milliseconds between beat checks (ticks)
+  samplePolyphony: 2 # Number of <audio> elements per sample
 
   constructor: ->
     @samples = {}
@@ -102,22 +103,32 @@ class Player
     for key, instrument of window.instruments
       for note in instrument.notesForScale(@scale)
         filename = instrument.filename(note, @format)
-        audioEl = $('<audio />').attr('src', filename).data({state: 'loading'})
-        audioEl.bind 'canplaythrough', (ev) =>
-          $(ev.target).data {state: 'ready'}
-          $(ev.target).unbind()
-          console.log "Player loaded " + ev.target.src + "!"
-          # Are we done yet?
-          if this.numSamplesLoading() == 0
-            @state = 'ready'
-            console.log "Player ready"
-            @prepareCallback() if @prepareCallback?
-        @samples[filename] = audioEl[0]
-        console.log "Player loading " + filename
+        @samples[filename] = for num in [1..@samplePolyphony]
+          audioEl = $('<audio />').attr('src', filename).data('state', 'loading')
+          audioEl.bind 'canplaythrough', (ev) =>
+            sample = $(ev.target)
+            sample.data('state', 'ready').unbind()
+            console.log "Player loaded " + ev.target.src + "!"
+            # Sample should take note of when it is done playing
+            sample.bind 'ended', (ev) -> $(ev.target).data 'state', 'ready'
+            # Are we done preparing yet?
+            if this.numSamplesLoading() == 0
+              @state = 'ready'
+              console.log "Player ready"
+              @prepareCallback() if @prepareCallback?
+          console.log "Player loading " + filename
+          audioEl[0]
     @state = "preparing"
 
   numSamplesLoading: ->
-    (1 for fn, sample of @samples when $(sample).data('state') == 'loading').length
+    (1 for el in _.flatten(@samples) when $(el).data('state') == 'loading').length
+
+  readyElementForSample: (filename) ->
+    for el in @samples[filename]
+      return el if $(el).data('state') == 'ready'
+    console.log "Player sample elements exhausted for " + filename
+    # Pick one to restart?
+    return null
 
   stageParts: (parts) ->
     @stagedParts = parts
@@ -144,10 +155,11 @@ class Player
     for instrumentKey, part of @parts
       instrument = window.instruments[instrumentKey]
       for note in part[@patternPos]
-        sample = @samples[instrument.filename(note, @format)]
-        needsPlaying = sample.currentTime == 0
-        sample.currentTime = 0
-        sample.play() if needsPlaying
+        if sample = this.readyElementForSample(instrument.filename(note, @format))
+          $(sample).data 'state', 'playing'
+          needsPlaying = sample.currentTime == 0
+          sample.currentTime = 0
+          sample.play() if needsPlaying
 
   play: ->
     if @state != "ready"
