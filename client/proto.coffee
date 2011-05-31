@@ -27,56 +27,101 @@ class Jam extends Backbone.Model
     patternLength: 16 # beats
     speed: 280 # beats per minute
     parts:
-      epiano: [
-        [36, 40],
-        [38, 43],
-        [40, 45],
-        [43, 48],
-        [45, 50],
-        [48, 52],
-        [50, 55],
-        [52, 57],
-        [55, 60],
-        [57, 62],
-        [60, 64],
-        [62, 67],
-        [64, 69],
-        [67, 36],
-        [69, 67],
-        [69, 36]
-        ]
+      epiano: [[36,45,50,69],[36,45,50],[64],[],[36,48,52,67],[36,48,52],[62],[36],[36,43,48,64],[36,43,48],[60],[],[36,50,55,62],[36,50,55],[57],[36]]
 
   setPart: (instrumentKey, part) ->
-    parts = this.get("parts")
+    parts = _.clone(this.get("parts"))
     parts[instrumentKey] = part
-    this.set("parts", parts)
+    this.set({parts: parts})
 
   getPart: (instrumentKey) ->
     this.get("parts")[instrumentKey] || []
 
 
 class JamView extends Backbone.View
+  initialize: ->
+    this.render()
+    this.editPart "epiano"
+
+  events:
+    "click .playButton": "play"
+    "click .stopButton": "stop"
+
+  editPart: (instrumentKey) ->
+    # XXX Remove old part if any
+    @editingInstrument = instrumentKey
+    @partView = new PartView {jam: @model, instrumentKey: instrumentKey, el: this.$('.part')}
+
+  play: -> window.player.play()
+
+  stop: -> window.player.stop()
+
   render: ->
-    $(@el).html("ahem...")
+    part = $('<div />').addClass('part')
+    buttons = $('<div />')
+    buttons.append $('<button />').html('Play').addClass('playButton')
+    buttons.append $('<button />').html('Stop').addClass('stopButton')
+    $(@el).html part
+    $(@el).append buttons
 
 
 class PartView extends Backbone.View
-  className: "part"
+  initialize: ->
+    @jam = @options.jam
+    @instrument = window.instruments[@options.instrumentKey]
+    @scale = window.scales[@jam.get("scale")]
+    @beats = [0..@jam.get('patternLength') - 1]
+    @notes = @instrument.notesForScale(@scale)
+    this.render()
+    this.setCells @jam.getPart(@options.instrumentKey)
+    window.player.bind 'beat', (num) => this.setCurrentBeat(num)
 
   events:
     "click TD": "toggleCell"
+    "click .clearButton": "resetPattern"
 
   render: ->
     table = $('<table />')
-    for beat in [0..lastBeat]
+    for note in @notes
       row = $('<tr />')
-      for note in @options.instrument.notesForScale(@options.scale)
-        row.append($('<td />').data({beat: beat, note: note}))
-      table.append(row)
-    $(@el).html(table)
+      for beat in @beats
+        row.append($('<td />').attr('data-beat', beat).attr('data-note', note))
+      table.prepend(row)
+    container = $('<div />')
+    container.append $('<h3 />').html('Edit ' + @instrument.name)
+    container.append table
+    container.append $('<button />').html('Clear').addClass('clearButton')
+    $(@el).html(container)
 
   toggleCell: (event) ->
     $(event.target).toggleClass('on')
+    this.updateModel()
+
+  resetPattern: ->
+    this.clearCells()
+    this.updateModel()
+
+  findCell: (beat, note) ->
+    this.$("td[data-beat=" + beat + "][data-note=" + note + "]")
+
+  clearCells: ->
+    this.$("td").removeClass('on')
+
+  setCells: (part) ->
+    this.clearCells()
+    for notes, beatNum in part
+      for note in notes
+        this.findCell(beatNum, note).addClass('on')
+
+  setCurrentBeat: (beat) ->
+    this.$("td").removeClass('current')
+    this.$("td[data-beat=" + beat + "]").addClass('current')
+
+  # Serialize the pattern and set it in our jam
+  updateModel: ->
+    part = for beat in @beats
+      note for note in @notes when this.findCell(beat, note).hasClass('on')
+    @jam.setPart(@options.instrumentKey, part)
 
 
 class Player
@@ -85,6 +130,7 @@ class Player
   samplePolyphony: 2 # Number of <audio> elements per sample
 
   constructor: ->
+    _.extend this, Backbone.Events # there's robably a better way to do this!
     @samples = {}
     @state = "unprepared"
     console.log "Player feels woefully unprepared"
@@ -94,12 +140,13 @@ class Player
     @patternLength = jam.get('patternLength')
     @scale = window.scales[jam.get('scale')]
     this.stageParts jam.get('parts')
+    jam.bind "change:parts", =>
+      this.stageParts jam.get("parts")
     console.log "Player loaded jam"
     this.prepare()
 
-  # Load all known sounds
+  # Load all relevant sounds
   prepare: (callback) ->
-    @prepareCallback = callback
     for key, instrument of window.instruments
       for note in instrument.notesForScale(@scale)
         filename = instrument.filename(note, @format)
@@ -115,7 +162,7 @@ class Player
             if this.numSamplesLoading() == 0
               @state = 'ready'
               console.log "Player ready"
-              @prepareCallback() if @prepareCallback?
+              callback() if callback?
           console.log "Player loading " + filename
           audioEl[0]
     @state = "preparing"
@@ -127,7 +174,7 @@ class Player
     for el in @samples[filename]
       return el if $(el).data('state') == 'ready'
     console.log "Player sample elements exhausted for " + filename
-    # Pick one to restart?
+    # TODO Pick one to restart?
     return null
 
   stageParts: (parts) ->
@@ -139,7 +186,7 @@ class Player
     @patternPos = 0
     if @stagedParts?
       console.log "Player moved staged parts to main"
-      @parts = @stagedParts
+      @parts = _.clone(@stagedParts)
       @stagedParts = null
 
   tick: ->
@@ -150,7 +197,6 @@ class Player
 
   beat: ->
     console.log "Player: beat! pos = " + @patternPos
-    @patternPos += 1
     this.beginPattern() if @patternPos == @patternLength
     for instrumentKey, part of @parts
       instrument = window.instruments[instrumentKey]
@@ -160,6 +206,8 @@ class Player
           needsPlaying = sample.currentTime == 0
           sample.currentTime = 0
           sample.play() if needsPlaying
+    this.trigger 'beat', @patternPos
+    @patternPos += 1
 
   play: ->
     if @state != "ready"
@@ -186,5 +234,4 @@ $ ->
   window.player = new Player
   window.jam = new Jam
   window.player.loadJam(window.jam)
-  #jamView = new JamView {el: $('#all')[0]}
-  #jamView.render()
+  jamView = new JamView {model: window.jam, el: $('#all')[0]}

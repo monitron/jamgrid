@@ -11,12 +11,16 @@
 	cursor: pointer;
 }
 
+.part TD.current {
+	background-color: #eef;
+}
+
 .part TD.on {
 	background-color: #ff0000;
 }
 
 .part TD:hover {
-	background-color: #eee;
+	background-color: #ddd;
 }
 
 .part TD.on:hover {
