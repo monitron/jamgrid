@@ -14,11 +14,22 @@ class Instrument
 class PitchedInstrument extends Instrument
   constructor: (@key, @name, @notes) ->
 
-  notesForScale: (scale) ->
+  soundsForScale: (scale) ->
     note for note in @notes when note % 12 in scale
+
+class PercussionInstrument extends Instrument
+  constructor: (@key, @name, @sounds) ->
+
+  iconFilename: (@soundKey) ->
+    "images/instruments/" + @key + "/sounds/" + @soundKey + ".png"
+
+  soundsForScale: (scale) ->
+    @sounds
 
 window.instruments =
   epiano: new PitchedInstrument("epiano", "E-Piano", [36..69])
+  808: new PercussionInstrument("808", "808",
+    ['bass', 'closedhat', 'openhat', 'snare'])
 
 class Jam extends Backbone.Model
   defaults:
@@ -28,6 +39,7 @@ class Jam extends Backbone.Model
     speed: 280 # beats per minute
     parts:
       epiano: [[36,45,50,69],[36,45,50],[64],[],[36,48,52,67],[36,48,52],[62],[36],[36,43,48,64],[36,43,48],[60],[],[36,50,55,62],[36,50,55],[57],[36]]
+      808: [["bass", "closedhat"], [], ["closedhat"], [], ["closedhat", "snare"], [], ["closedhat"], [], ["bass", "closedhat"], [], ["closedhat"], ["bass"], ["closedhat", "snare"], [], ["openhat"], []]
 
   setPart: (instrumentKey, part) ->
     parts = _.clone(this.get("parts"))
@@ -46,8 +58,10 @@ class JamView extends Backbone.View
   events:
     "click .playButton": "play"
     "click .stopButton": "stop"
+    "click .editButton": "editPart"
 
   editPart: (instrumentKey) ->
+    instrumentKey = $(instrumentKey.target).data('key') if instrumentKey.target?
     # XXX Remove old part if any
     @editingInstrument = instrumentKey
     @partView = new PartView {jam: @model, instrumentKey: instrumentKey, el: this.$('.part')}
@@ -57,11 +71,16 @@ class JamView extends Backbone.View
   stop: -> window.player.stop()
 
   render: ->
-    part = $('<div />').addClass('part')
+    instruments = $('<ul />').addClass('instruments')
+    for key, instrument of window.instruments
+      instEl = $('<li />').html(instrument.name + ": ")
+      instEl.append $('<button />').html('Edit').addClass('editButton').data('key', instrument.key)
+      instruments.append instEl
     buttons = $('<div />')
     buttons.append $('<button />').html('Play').addClass('playButton')
     buttons.append $('<button />').html('Stop').addClass('stopButton')
-    $(@el).html part
+    $(@el).html instruments
+    $(@el).append $('<div />').addClass('part')
     $(@el).append buttons
 
 
@@ -71,7 +90,7 @@ class PartView extends Backbone.View
     @instrument = window.instruments[@options.instrumentKey]
     @scale = window.scales[@jam.get("scale")]
     @beats = [0..@jam.get('patternLength') - 1]
-    @notes = @instrument.notesForScale(@scale)
+    @sounds = @instrument.soundsForScale(@scale)
     this.render()
     this.setCells @jam.getPart(@options.instrumentKey)
     window.player.bind 'beat', (num) => this.setCurrentBeat(num)
@@ -82,10 +101,10 @@ class PartView extends Backbone.View
 
   render: ->
     table = $('<table />')
-    for note in @notes
+    for sound in @sounds
       row = $('<tr />')
       for beat in @beats
-        row.append($('<td />').attr('data-beat', beat).attr('data-note', note))
+        row.append($('<td />').attr('data-beat', beat).attr('data-sound', sound))
       table.prepend(row)
     container = $('<div />')
     container.append $('<h3 />').html('Edit ' + @instrument.name)
@@ -101,17 +120,17 @@ class PartView extends Backbone.View
     this.clearCells()
     this.updateModel()
 
-  findCell: (beat, note) ->
-    this.$("td[data-beat=" + beat + "][data-note=" + note + "]")
+  findCell: (beat, sound) ->
+    this.$("td[data-beat=" + beat + "][data-sound=" + sound + "]")
 
   clearCells: ->
     this.$("td").removeClass('on')
 
   setCells: (part) ->
     this.clearCells()
-    for notes, beatNum in part
-      for note in notes
-        this.findCell(beatNum, note).addClass('on')
+    for sounds, beatNum in part
+      for sound in sounds
+        this.findCell(beatNum, sound).addClass('on')
 
   setCurrentBeat: (beat) ->
     this.$("td").removeClass('current')
@@ -120,7 +139,7 @@ class PartView extends Backbone.View
   # Serialize the pattern and set it in our jam
   updateModel: ->
     part = for beat in @beats
-      note for note in @notes when this.findCell(beat, note).hasClass('on')
+      sound for sound in @sounds when this.findCell(beat, sound).hasClass('on')
     @jam.setPart(@options.instrumentKey, part)
 
 
@@ -139,17 +158,16 @@ class Player
     @beatInterval = 1000 / (jam.get('speed') / 60)
     @patternLength = jam.get('patternLength')
     @scale = window.scales[jam.get('scale')]
-    this.stageParts jam.get('parts')
-    jam.bind "change:parts", =>
-      this.stageParts jam.get("parts")
+    @parts = jam.get('parts')
+    jam.bind "change:parts", => @parts = jam.get("parts")
     console.log "Player loaded jam"
     this.prepare()
 
   # Load all relevant sounds
   prepare: (callback) ->
     for key, instrument of window.instruments
-      for note in instrument.notesForScale(@scale)
-        filename = instrument.filename(note, @format)
+      for sound in instrument.soundsForScale(@scale)
+        filename = instrument.filename(sound, @format)
         @samples[filename] = for num in [1..@samplePolyphony]
           audioEl = $('<audio />').attr('src', filename).data('state', 'loading')
           audioEl.bind 'canplaythrough', (ev) =>
@@ -177,17 +195,9 @@ class Player
     # TODO Pick one to restart?
     return null
 
-  stageParts: (parts) ->
-    @stagedParts = parts
-    console.log "Player staged new parts"
-
   beginPattern: ->
     console.log "Player beginning pattern"
     @patternPos = 0
-    if @stagedParts?
-      console.log "Player moved staged parts to main"
-      @parts = _.clone(@stagedParts)
-      @stagedParts = null
 
   tick: ->
     time = (new Date).getTime()
@@ -200,8 +210,8 @@ class Player
     this.beginPattern() if @patternPos == @patternLength
     for instrumentKey, part of @parts
       instrument = window.instruments[instrumentKey]
-      for note in part[@patternPos]
-        if sample = this.readyElementForSample(instrument.filename(note, @format))
+      for sound in part[@patternPos]
+        if sample = this.readyElementForSample(instrument.filename(sound, @format))
           $(sample).data 'state', 'playing'
           needsPlaying = sample.currentTime == 0
           sample.currentTime = 0

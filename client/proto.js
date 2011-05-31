@@ -1,5 +1,5 @@
 (function() {
-  var Instrument, Jam, JamView, PartView, PitchedInstrument, Player, _i, _results;
+  var Instrument, Jam, JamView, PartView, PercussionInstrument, PitchedInstrument, Player, _i, _results;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
@@ -35,7 +35,7 @@
       this.name = name;
       this.notes = notes;
     }
-    PitchedInstrument.prototype.notesForScale = function(scale) {
+    PitchedInstrument.prototype.soundsForScale = function(scale) {
       var note, _i, _len, _ref, _ref2, _results;
       _ref = this.notes;
       _results = [];
@@ -49,12 +49,29 @@
     };
     return PitchedInstrument;
   })();
+  PercussionInstrument = (function() {
+    __extends(PercussionInstrument, Instrument);
+    function PercussionInstrument(key, name, sounds) {
+      this.key = key;
+      this.name = name;
+      this.sounds = sounds;
+    }
+    PercussionInstrument.prototype.iconFilename = function(soundKey) {
+      this.soundKey = soundKey;
+      return "images/instruments/" + this.key + "/sounds/" + this.soundKey + ".png";
+    };
+    PercussionInstrument.prototype.soundsForScale = function(scale) {
+      return this.sounds;
+    };
+    return PercussionInstrument;
+  })();
   window.instruments = {
     epiano: new PitchedInstrument("epiano", "E-Piano", (function() {
       _results = [];
       for (_i = 36; _i <= 69; _i++){ _results.push(_i); }
       return _results;
-    }).apply(this, arguments))
+    }).apply(this, arguments)),
+    808: new PercussionInstrument("808", "808", ['bass', 'closedhat', 'openhat', 'snare'])
   };
   Jam = (function() {
     __extends(Jam, Backbone.Model);
@@ -67,7 +84,8 @@
       patternLength: 16,
       speed: 280,
       parts: {
-        epiano: [[36, 45, 50, 69], [36, 45, 50], [64], [], [36, 48, 52, 67], [36, 48, 52], [62], [36], [36, 43, 48, 64], [36, 43, 48], [60], [], [36, 50, 55, 62], [36, 50, 55], [57], [36]]
+        epiano: [[36, 45, 50, 69], [36, 45, 50], [64], [], [36, 48, 52, 67], [36, 48, 52], [62], [36], [36, 43, 48, 64], [36, 43, 48], [60], [], [36, 50, 55, 62], [36, 50, 55], [57], [36]],
+        808: [["bass", "closedhat"], [], ["closedhat"], [], ["closedhat", "snare"], [], ["closedhat"], [], ["bass", "closedhat"], [], ["closedhat"], ["bass"], ["closedhat", "snare"], [], ["openhat"], []]
       }
     };
     Jam.prototype.setPart = function(instrumentKey, part) {
@@ -94,9 +112,13 @@
     };
     JamView.prototype.events = {
       "click .playButton": "play",
-      "click .stopButton": "stop"
+      "click .stopButton": "stop",
+      "click .editButton": "editPart"
     };
     JamView.prototype.editPart = function(instrumentKey) {
+      if (instrumentKey.target != null) {
+        instrumentKey = $(instrumentKey.target).data('key');
+      }
       this.editingInstrument = instrumentKey;
       return this.partView = new PartView({
         jam: this.model,
@@ -111,12 +133,20 @@
       return window.player.stop();
     };
     JamView.prototype.render = function() {
-      var buttons, part;
-      part = $('<div />').addClass('part');
+      var buttons, instEl, instrument, instruments, key, _ref;
+      instruments = $('<ul />').addClass('instruments');
+      _ref = window.instruments;
+      for (key in _ref) {
+        instrument = _ref[key];
+        instEl = $('<li />').html(instrument.name + ": ");
+        instEl.append($('<button />').html('Edit').addClass('editButton').data('key', instrument.key));
+        instruments.append(instEl);
+      }
       buttons = $('<div />');
       buttons.append($('<button />').html('Play').addClass('playButton'));
       buttons.append($('<button />').html('Stop').addClass('stopButton'));
-      $(this.el).html(part);
+      $(this.el).html(instruments);
+      $(this.el).append($('<div />').addClass('part'));
       return $(this.el).append(buttons);
     };
     return JamView;
@@ -136,7 +166,7 @@
         for (var _j = 0, _ref = this.jam.get('patternLength') - 1; 0 <= _ref ? _j <= _ref : _j >= _ref; 0 <= _ref ? _j++ : _j--){ _results2.push(_j); }
         return _results2;
       }).apply(this, arguments);
-      this.notes = this.instrument.notesForScale(this.scale);
+      this.sounds = this.instrument.soundsForScale(this.scale);
       this.render();
       this.setCells(this.jam.getPart(this.options.instrumentKey));
       return window.player.bind('beat', __bind(function(num) {
@@ -148,16 +178,16 @@
       "click .clearButton": "resetPattern"
     };
     PartView.prototype.render = function() {
-      var beat, container, note, row, table, _j, _k, _len, _len2, _ref, _ref2;
+      var beat, container, row, sound, table, _j, _k, _len, _len2, _ref, _ref2;
       table = $('<table />');
-      _ref = this.notes;
+      _ref = this.sounds;
       for (_j = 0, _len = _ref.length; _j < _len; _j++) {
-        note = _ref[_j];
+        sound = _ref[_j];
         row = $('<tr />');
         _ref2 = this.beats;
         for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
           beat = _ref2[_k];
-          row.append($('<td />').attr('data-beat', beat).attr('data-note', note));
+          row.append($('<td />').attr('data-beat', beat).attr('data-sound', sound));
         }
         table.prepend(row);
       }
@@ -175,24 +205,24 @@
       this.clearCells();
       return this.updateModel();
     };
-    PartView.prototype.findCell = function(beat, note) {
-      return this.$("td[data-beat=" + beat + "][data-note=" + note + "]");
+    PartView.prototype.findCell = function(beat, sound) {
+      return this.$("td[data-beat=" + beat + "][data-sound=" + sound + "]");
     };
     PartView.prototype.clearCells = function() {
       return this.$("td").removeClass('on');
     };
     PartView.prototype.setCells = function(part) {
-      var beatNum, note, notes, _len, _results2;
+      var beatNum, sound, sounds, _len, _results2;
       this.clearCells();
       _results2 = [];
       for (beatNum = 0, _len = part.length; beatNum < _len; beatNum++) {
-        notes = part[beatNum];
+        sounds = part[beatNum];
         _results2.push((function() {
           var _j, _len2, _results3;
           _results3 = [];
-          for (_j = 0, _len2 = notes.length; _j < _len2; _j++) {
-            note = notes[_j];
-            _results3.push(this.findCell(beatNum, note).addClass('on'));
+          for (_j = 0, _len2 = sounds.length; _j < _len2; _j++) {
+            sound = sounds[_j];
+            _results3.push(this.findCell(beatNum, sound).addClass('on'));
           }
           return _results3;
         }).call(this));
@@ -204,7 +234,7 @@
       return this.$("td[data-beat=" + beat + "]").addClass('current');
     };
     PartView.prototype.updateModel = function() {
-      var beat, note, part;
+      var beat, part, sound;
       part = (function() {
         var _j, _len, _ref, _results2;
         _ref = this.beats;
@@ -213,12 +243,12 @@
           beat = _ref[_j];
           _results2.push((function() {
             var _k, _len2, _ref2, _results3;
-            _ref2 = this.notes;
+            _ref2 = this.sounds;
             _results3 = [];
             for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-              note = _ref2[_k];
-              if (this.findCell(beat, note).hasClass('on')) {
-                _results3.push(note);
+              sound = _ref2[_k];
+              if (this.findCell(beat, sound).hasClass('on')) {
+                _results3.push(sound);
               }
             }
             return _results3;
@@ -244,22 +274,22 @@
       this.beatInterval = 1000 / (jam.get('speed') / 60);
       this.patternLength = jam.get('patternLength');
       this.scale = window.scales[jam.get('scale')];
-      this.stageParts(jam.get('parts'));
+      this.parts = jam.get('parts');
       jam.bind("change:parts", __bind(function() {
-        return this.stageParts(jam.get("parts"));
+        return this.parts = jam.get("parts");
       }, this));
       console.log("Player loaded jam");
       return this.prepare();
     };
     Player.prototype.prepare = function(callback) {
-      var audioEl, filename, instrument, key, note, num, _j, _len, _ref, _ref2;
+      var audioEl, filename, instrument, key, num, sound, _j, _len, _ref, _ref2;
       _ref = window.instruments;
       for (key in _ref) {
         instrument = _ref[key];
-        _ref2 = instrument.notesForScale(this.scale);
+        _ref2 = instrument.soundsForScale(this.scale);
         for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
-          note = _ref2[_j];
-          filename = instrument.filename(note, this.format);
+          sound = _ref2[_j];
+          filename = instrument.filename(sound, this.format);
           this.samples[filename] = (function() {
             var _ref3, _results2;
             _results2 = [];
@@ -317,18 +347,9 @@
       console.log("Player sample elements exhausted for " + filename);
       return null;
     };
-    Player.prototype.stageParts = function(parts) {
-      this.stagedParts = parts;
-      return console.log("Player staged new parts");
-    };
     Player.prototype.beginPattern = function() {
       console.log("Player beginning pattern");
-      this.patternPos = 0;
-      if (this.stagedParts != null) {
-        console.log("Player moved staged parts to main");
-        this.parts = _.clone(this.stagedParts);
-        return this.stagedParts = null;
-      }
+      return this.patternPos = 0;
     };
     Player.prototype.tick = function() {
       var time;
@@ -339,7 +360,7 @@
       }
     };
     Player.prototype.beat = function() {
-      var instrument, instrumentKey, needsPlaying, note, part, sample, _j, _len, _ref, _ref2;
+      var instrument, instrumentKey, needsPlaying, part, sample, sound, _j, _len, _ref, _ref2;
       console.log("Player: beat! pos = " + this.patternPos);
       if (this.patternPos === this.patternLength) {
         this.beginPattern();
@@ -350,8 +371,8 @@
         instrument = window.instruments[instrumentKey];
         _ref2 = part[this.patternPos];
         for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
-          note = _ref2[_j];
-          if (sample = this.readyElementForSample(instrument.filename(note, this.format))) {
+          sound = _ref2[_j];
+          if (sample = this.readyElementForSample(instrument.filename(sound, this.format))) {
             $(sample).data('state', 'playing');
             needsPlaying = sample.currentTime === 0;
             sample.currentTime = 0;
