@@ -97,15 +97,16 @@ class PartView extends Backbone.View
     window.player.bind 'beat', (num) => this.setCurrentBeat(num)
 
   events:
-    "click TD": "toggleCell"
+    "click TD.toggleable": "toggleCell"
     "click .clearButton": "resetPattern"
 
   render: ->
     table = $('<table />')
     for sound in @sounds
       row = $('<tr />')
+      row.append($('<td />').html(sound).addClass('label'))
       for beat in @beats
-        row.append($('<td />').attr('data-beat', beat).attr('data-sound', sound))
+        row.append($('<td />').attr('data-beat', beat).attr('data-sound', sound).addClass('toggleable'))
       table.prepend(row)
     container = $('<div />')
     container.append $('<h3 />').html('Edit ' + @instrument.name)

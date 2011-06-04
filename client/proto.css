@@ -5,10 +5,12 @@
 .part TD {
 	width: 20px;
 	height: 20px;
-	border: 1px solid #ddd;
-	margin: 0;
-	padding: 0;
-	cursor: pointer;
+}
+
+.part TD.label {
+	padding-right: 20px;
+	font-weight:bold;
+	padding-left: 20px;
 }
 
 .part TD.current {
@@ -19,7 +21,13 @@
 	background-color: #ff0000;
 }
 
-.part TD:hover {
+.part TD.toggleable {	
+	border: 1px solid #ddd;
+	margin: 0;
+	padding: 0;
+	cursor: pointer;	
+}
+.part TD.toggleable:hover {
 	background-color: #ddd;
 }
 

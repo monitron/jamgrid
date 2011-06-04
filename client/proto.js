@@ -175,7 +175,7 @@
       }, this));
     };
     PartView.prototype.events = {
-      "click TD": "toggleCell",
+      "click TD.toggleable": "toggleCell",
       "click .clearButton": "resetPattern"
     };
     PartView.prototype.render = function() {
@@ -185,10 +185,11 @@
       for (_j = 0, _len = _ref.length; _j < _len; _j++) {
         sound = _ref[_j];
         row = $('<tr />');
+        row.append($('<td />').html(sound).addClass('label'));
         _ref2 = this.beats;
         for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
           beat = _ref2[_k];
-          row.append($('<td />').attr('data-beat', beat).attr('data-sound', sound));
+          row.append($('<td />').attr('data-beat', beat).attr('data-sound', sound).addClass('toggleable'));
         }
         table.prepend(row);
       }
