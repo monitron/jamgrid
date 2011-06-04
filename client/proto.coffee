@@ -30,7 +30,7 @@ class PercussionInstrument extends Instrument
 window.instruments =
   epiano: new PitchedInstrument("epiano", "E-Piano", [36..69])
   808: new PercussionInstrument("808", "808",
-    ['bass', 'closedhat', 'openhat', 'snare'])
+    ['bass', 'closedhat', 'openhat', 'snare', 'cowbell'])
 
 class Jam extends Backbone.Model
   defaults:

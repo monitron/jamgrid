@@ -72,7 +72,7 @@
       for (_i = 36; _i <= 69; _i++){ _results.push(_i); }
       return _results;
     }).apply(this, arguments)),
-    808: new PercussionInstrument("808", "808", ['bass', 'closedhat', 'openhat', 'snare'])
+    808: new PercussionInstrument("808", "808", ['bass', 'closedhat', 'openhat', 'snare', 'cowbell'])
   };
   Jam = (function() {
     __extends(Jam, Backbone.Model);
