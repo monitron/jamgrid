@@ -14,7 +14,8 @@
     return -1;
   }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   window.scales = {
-    "Major Pentatonic": [0, 2, 4, 7, 9]
+    "Major Pentatonic": [0, 2, 4, 7, 9],
+    "Minor Pentatonic": [0, 3, 5, 7, 10]
   };
   Instrument = (function() {
     function Instrument(key, name) {
@@ -294,7 +295,10 @@
             var _ref3, _results2;
             _results2 = [];
             for (num = 1, _ref3 = this.samplePolyphony; 1 <= _ref3 ? num <= _ref3 : num >= _ref3; 1 <= _ref3 ? num++ : num--) {
-              audioEl = $('<audio />').attr('src', filename).data('state', 'loading');
+              audioEl = $('<audio />').attr('src', filename).data({
+                state: 'loading',
+                n: num
+              });
               audioEl.bind('canplaythrough', __bind(function(ev) {
                 var sample;
                 sample = $(ev.target);
@@ -387,7 +391,7 @@
     };
     Player.prototype.play = function() {
       if (this.state !== "ready") {
-        console.log("Player can't play in this state");
+        console.log("Player isn't ready to play");
         return;
       }
       this.state = "playing";

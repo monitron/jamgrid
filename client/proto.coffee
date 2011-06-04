@@ -4,6 +4,7 @@
 # Scales are defined by an array of pitch classes
 window.scales =
   "Major Pentatonic": [0, 2, 4, 7, 9]
+  "Minor Pentatonic": [0, 3, 5, 7, 10]
 
 class Instrument
   constructor: (@key, @name) ->
@@ -169,7 +170,7 @@ class Player
       for sound in instrument.soundsForScale(@scale)
         filename = instrument.filename(sound, @format)
         @samples[filename] = for num in [1..@samplePolyphony]
-          audioEl = $('<audio />').attr('src', filename).data('state', 'loading')
+          audioEl = $('<audio />').attr('src', filename).data({state: 'loading', n: num})
           audioEl.bind 'canplaythrough', (ev) =>
             sample = $(ev.target)
             sample.data('state', 'ready').unbind()
@@ -221,7 +222,7 @@ class Player
 
   play: ->
     if @state != "ready"
-      console.log "Player can't play in this state"
+      console.log "Player isn't ready to play"
       return
     @state = "playing"
     console.log "Player playing"
