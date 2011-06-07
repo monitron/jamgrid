@@ -15,7 +15,8 @@
   }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   window.scales = {
     "Major Pentatonic": [0, 2, 4, 7, 9],
-    "Minor Pentatonic": [0, 3, 5, 7, 10]
+    "Minor Pentatonic": [0, 3, 5, 7, 10],
+    "Chromatic": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
   };
   Instrument = (function() {
     function Instrument(key, name) {
@@ -69,10 +70,10 @@
   window.instruments = {
     epiano: new PitchedInstrument("epiano", "E-Piano", (function() {
       _results = [];
-      for (_i = 36; _i <= 69; _i++){ _results.push(_i); }
+      for (_i = 28; _i <= 63; _i++){ _results.push(_i); }
       return _results;
     }).apply(this, arguments)),
-    808: new PercussionInstrument("808", "808", ['bass', 'closedhat', 'openhat', 'snare', 'cowbell'])
+    808: new PercussionInstrument("808", "808", ['bass', 'closedhat', 'openhat', 'snare', 'cymbal', 'clap', 'cowbell'])
   };
   Jam = (function() {
     __extends(Jam, Backbone.Model);
@@ -81,13 +82,10 @@
     }
     Jam.prototype.defaults = {
       parts: {},
-      scale: "Major Pentatonic",
+      scale: "Minor Pentatonic",
       patternLength: 16,
       speed: 280,
-      parts: {
-        epiano: [[36, 45, 50, 69], [36, 45, 50], [64], [], [36, 48, 52, 67], [36, 48, 52], [62], [36], [36, 43, 48, 64], [36, 43, 48], [60], [], [36, 50, 55, 62], [36, 50, 55], [57], [36]],
-        808: [["bass", "closedhat"], [], ["closedhat"], [], ["closedhat", "snare"], [], ["closedhat"], [], ["bass", "closedhat"], [], ["closedhat"], ["bass"], ["closedhat", "snare"], [], ["openhat"], []]
-      }
+      parts: {}
     };
     Jam.prototype.setPart = function(instrumentKey, part) {
       var parts;

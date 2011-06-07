@@ -5,6 +5,7 @@
 window.scales =
   "Major Pentatonic": [0, 2, 4, 7, 9]
   "Minor Pentatonic": [0, 3, 5, 7, 10]
+  "Chromatic": [0..11]
 
 class Instrument
   constructor: (@key, @name) ->
@@ -28,19 +29,17 @@ class PercussionInstrument extends Instrument
     @sounds
 
 window.instruments =
-  epiano: new PitchedInstrument("epiano", "E-Piano", [36..69])
+  epiano: new PitchedInstrument("epiano", "E-Piano", [28..63])
   808: new PercussionInstrument("808", "808",
-    ['bass', 'closedhat', 'openhat', 'snare', 'cowbell'])
+    ['bass', 'closedhat', 'openhat', 'snare', 'cymbal', 'clap', 'cowbell'])
 
 class Jam extends Backbone.Model
   defaults:
     parts: {}
-    scale: "Major Pentatonic"
+    scale: "Minor Pentatonic"
     patternLength: 16 # beats
     speed: 280 # beats per minute
-    parts:
-      epiano: [[36,45,50,69],[36,45,50],[64],[],[36,48,52,67],[36,48,52],[62],[36],[36,43,48,64],[36,43,48],[60],[],[36,50,55,62],[36,50,55],[57],[36]]
-      808: [["bass", "closedhat"], [], ["closedhat"], [], ["closedhat", "snare"], [], ["closedhat"], [], ["bass", "closedhat"], [], ["closedhat"], ["bass"], ["closedhat", "snare"], [], ["openhat"], []]
+    parts: {}
 
   setPart: (instrumentKey, part) ->
     parts = _.clone(this.get("parts"))

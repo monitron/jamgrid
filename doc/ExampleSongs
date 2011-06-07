@@ -1,4 +1,13 @@
 
+These songs are all in the Minor Pentatonic scale.
 
-As of 2011-03-31, this taxes the player on FF4/OSX and fries Chrome/OSX
-'{"epiano":[[38,64],[],[62],[43],[],[],[45,57],[],[55],[43],[],[62],[48],[],[40,55],[]],"808":[["bass","closedhat"],["closedhat"],["bass","openhat"],[],["bass","closedhat","snare"],["bass","closedhat"],["openhat"],["bass"],["bass","closedhat"],["closedhat"],["bass","openhat"],[],["bass","closedhat","snare"],["bass","closedhat"],["openhat"],["bass"]]}'
+A 16-length song:
+"{\"epiano\":[[43],[58],[31],[],[55],[46],[34],[],[51],[60],[29],[],[63],[53],[36],[]],\"808\":[[\"closedhat\",\"cymbal\"],[\"bass\"],[\"bass\",\"closedhat\"],[],[\"closedhat\",\"cowbell\"],[\"bass\"],[\"closedhat\",\"snare\"],[],[\"closedhat\"],[\"bass\"],[\"bass\",\"closedhat\"],[\"clap\"],[\"closedhat\"],[\"bass\"],[\"openhat\",\"snare\"],[\"bass\",\"cowbell\"]]}"
+
+
+A 32-length song:
+"{\"epiano\":[[43,48,52,62],[],[60],[],[43,48,52,62],[],[60],[],[38,43,48,57],[],[55],[],[38,43,48,57],[],[55],[],[40,45,50,60],[],[57],[],[40,45,50,60],[],[57],[],[33,38,43,62],[],[60],[],[33,40,48,57],[],[55],[]],\"808\":[[\"bass\",\"cymbal\"],[],[\"bass\"],[\"bass\"],[\"snare\"],[\"bass\"],[\"openhat\"],[],[\"bass\"],[],[\"bass\"],[\"bass\"],[\"snare\"],[\"bass\"],[\"openhat\"],[],[\"bass\"],[],[\"bass\"],[\"bass\"],[\"snare\"],[\"bass\"],[\"openhat\"],[],[\"bass\"],[],[\"bass\"],[\"bass\"],[\"snare\"],[\"bass\"],[\"bass\"],[\"bass\"]]}"
+
+
+Another 32-length song:
+"{\"epiano\":[[33,40,48],[38,45],[33],[33,43,52],[],[33,40,50],[33],[45,55],[31],[],[31,43,52],[31],[43,48,52],[31],[31,43,50],[40,48],[28],[],[28,40,48],[28,38,45],[40,48],[28,40,50],[28],[28,38,48],[31,40,50],[40,50],[31,38,43],[],[31,45,55],[],[31,38,48],[]],\"808\":[[\"bass\",\"closedhat\",\"cymbal\"],[],[\"closedhat\"],[],[\"closedhat\",\"snare\"],[],[\"closedhat\"],[],[\"bass\",\"closedhat\"],[],[\"closedhat\"],[],[\"closedhat\",\"snare\"],[],[\"closedhat\"],[],[\"bass\",\"closedhat\"],[],[\"closedhat\"],[],[\"closedhat\",\"snare\"],[],[\"closedhat\"],[\"bass\"],[\"bass\",\"closedhat\"],[],[\"bass\",\"closedhat\"],[],[\"closedhat\",\"snare\"],[],[\"openhat\"],[]]}"
