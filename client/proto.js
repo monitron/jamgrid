@@ -84,8 +84,7 @@
       parts: {},
       scale: "Minor Pentatonic",
       patternLength: 16,
-      speed: 280,
-      parts: {}
+      speed: 280
     };
     Jam.prototype.setPart = function(instrumentKey, part) {
       var parts;

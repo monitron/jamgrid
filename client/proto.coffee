@@ -39,7 +39,6 @@ class Jam extends Backbone.Model
     scale: "Minor Pentatonic"
     patternLength: 16 # beats
     speed: 280 # beats per minute
-    parts: {}
 
   setPart: (instrumentKey, part) ->
     parts = _.clone(this.get("parts"))
