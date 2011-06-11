@@ -1,0 +1,11 @@
+We want to provide Ogg Vorbis (.ogg) and WAV files (.wav) for each sample.
+
+- Samples should be mono, 44.1kHz or 48kHz sample rate.
+- Lengths shorter than about 0.3s won't work on some browsers (e.g. Chrome 
+  11/Ubuntu)...the workaround is to pad with silence.
+- Lengths longer than about 0.6s will eat up the available playback elements 
+  too quickly.
+- Some browsers will refuse to play WAVs if they aren't in a pristine format.
+  The output of Audacity when set to export "WAV (Microsoft) signed 16 bit PCM"
+  seems to be good enough.
+- I've been using Ogg quality "5".
