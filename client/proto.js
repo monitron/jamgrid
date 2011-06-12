@@ -233,28 +233,21 @@
       return this.$("td[data-beat=" + beat + "]").addClass('current');
     };
     PartView.prototype.updateModel = function() {
-      var beat, part, sound;
+      var cell, n, part, _j, _len, _ref;
       part = (function() {
-        var _j, _len, _ref, _results2;
-        _ref = this.beats;
+        var _ref, _results2;
         _results2 = [];
-        for (_j = 0, _len = _ref.length; _j < _len; _j++) {
-          beat = _ref[_j];
-          _results2.push((function() {
-            var _k, _len2, _ref2, _results3;
-            _ref2 = this.sounds;
-            _results3 = [];
-            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-              sound = _ref2[_k];
-              if (this.findCell(beat, sound).hasClass('on')) {
-                _results3.push(sound);
-              }
-            }
-            return _results3;
-          }).call(this));
+        for (n = 1, _ref = this.jam.get('patternLength'); 1 <= _ref ? n <= _ref : n >= _ref; 1 <= _ref ? n++ : n--) {
+          _results2.push([]);
         }
         return _results2;
       }).call(this);
+      _ref = this.$("td.on");
+      for (_j = 0, _len = _ref.length; _j < _len; _j++) {
+        cell = _ref[_j];
+        cell = $(cell);
+        part[cell.data('beat')].push(cell.data('sound'));
+      }
       return this.jam.setPart(this.options.instrumentKey, part);
     };
     return PartView;

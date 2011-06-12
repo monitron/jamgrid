@@ -138,8 +138,10 @@ class PartView extends Backbone.View
 
   # Serialize the pattern and set it in our jam
   updateModel: ->
-    part = for beat in @beats
-      sound for sound in @sounds when this.findCell(beat, sound).hasClass('on')
+    part = ([] for n in [1..@jam.get('patternLength')])
+    for cell in this.$("td.on")
+      cell = $(cell)
+      part[cell.data('beat')].push(cell.data('sound'))
     @jam.setPart(@options.instrumentKey, part)
 
 
