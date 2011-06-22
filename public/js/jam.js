@@ -26,7 +26,7 @@
     Instrument.prototype.filename = function(soundKey, format) {
       this.soundKey = soundKey;
       this.format = format;
-      return "instruments/" + this.key + "/" + this.soundKey + "." + this.format;
+      return "/instruments/" + this.key + "/" + this.soundKey + "." + this.format;
     };
     return Instrument;
   })();
@@ -60,7 +60,7 @@
     }
     PercussionInstrument.prototype.iconFilename = function(soundKey) {
       this.soundKey = soundKey;
-      return "images/instruments/" + this.key + "/sounds/" + this.soundKey + ".png";
+      return "/images/instruments/" + this.key + "/sounds/" + this.soundKey + ".png";
     };
     PercussionInstrument.prototype.soundsForScale = function(scale) {
       return this.sounds;

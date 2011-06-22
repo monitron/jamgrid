@@ -1,0 +1,19 @@
+!!! 5
+html(lang="en")
+  head
+    title JamGrid
+    script(src='/js/lib/jquery.js')
+    script(src='/js/lib/underscore.js')
+    script(src='/js/lib/backbone.js')
+    script(src='/js/jam.js')
+    link(href='/main.css',rel='stylesheet',type='text/css')
+  body
+    h1 jamgrid
+    #authentication
+      - if (everyauth.loggedIn)
+        .greeting Hello, #{user.login}!
+      - else
+        a(href='/register') Sign Up
+        a(href='/login') Log In
+    #body
+      != body

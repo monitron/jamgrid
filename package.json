@@ -1,0 +1,29 @@
+{
+  "name": "jamgrid",
+  "description": "Casual collaborative music making",
+  "version": "0.0.1",
+  "homepage": "https://github.com/monitron/jamgrid/",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/monitron/jamgrid.git"
+  },
+  "author": "Justin Streufert <monitron@gmail.com>",
+  "contributors": [
+		{ "name": "Justin Streufert", "email": "monitron@gmail.com" },
+		{ "name": "Kathy Dawson", "email": "tittergrrl@gmail.com" }
+	],
+  "main": "./jamserver.js",
+  "dependencies": {
+    "express":">=2.3.11",
+    "mongoose": ">=1.4.0",
+		"jade": ">=0.12.1",
+		"mongoose-auth": ">=0.0.10",
+		"socket.io": ">=0.6.18"
+  },
+  "devDependencies": {
+    "coffee-script": ">=1.1.1"
+  },
+  "engines": {
+    "node": ">=0.4.x"
+  }
+}

@@ -1,6 +1,3 @@
-# Prototype to test the viability of sequencing multiple simultaneous HTML5
-# audio plays to create something like music!
-
 # Scales are defined by an array of pitch classes
 window.scales =
   "Major Pentatonic": [0, 2, 4, 7, 9]
@@ -11,7 +8,7 @@ class Instrument
   constructor: (@key, @name) ->
 
   filename: (@soundKey, @format) ->
-    "instruments/" + @key + "/" + @soundKey + "." + @format
+    "/instruments/" + @key + "/" + @soundKey + "." + @format
 
 class PitchedInstrument extends Instrument
   constructor: (@key, @name, @notes) ->
@@ -23,7 +20,7 @@ class PercussionInstrument extends Instrument
   constructor: (@key, @name, @sounds) ->
 
   iconFilename: (@soundKey) ->
-    "images/instruments/" + @key + "/sounds/" + @soundKey + ".png"
+    "/images/instruments/" + @key + "/sounds/" + @soundKey + ".png"
 
   soundsForScale: (scale) ->
     @sounds
@@ -151,7 +148,7 @@ class Player
   samplePolyphony: 2 # Number of <audio> elements per sample
 
   constructor: ->
-    _.extend this, Backbone.Events # there's robably a better way to do this!
+    _.extend this, Backbone.Events # there's probably a better way to do this!
     @samples = {}
     @state = "unprepared"
     console.log "Player feels woefully unprepared"
