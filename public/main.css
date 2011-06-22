@@ -1,3 +1,57 @@
+BODY {
+	font-family: Helvetica, Arial, sans-serif;
+	margin: 0;
+}
+
+H1, H2, H3 {
+	margin: 0;
+}
+
+H1 {
+	background-color: cornflowerblue;
+	font-size: 29px;
+	padding: 10px;
+	color: white;
+}
+
+#authentication {
+	float: right;
+	text-align: right;
+	margin: 10px;
+	color: white;
+	font-size: 14px;
+}
+
+#authentication UL {
+	overflow: hidden;
+	margin: 0;
+	list-style-type: none;
+}
+
+#authentication LI {
+	float: left;
+	margin-left: 10px;
+}
+
+#authentication LI A {
+	color: white;
+}
+
+#all {
+	margin: 10px;
+}
+
+UL.errors {
+	background-color: red;
+	color: white;
+	padding: 10px;
+	border-radius: 5px;
+}
+
+UL.errors LI {
+	margin-left: 20px;
+}
+
 .part TABLE {
 	border-collapse: collapse;
 }
@@ -33,4 +87,36 @@
 
 .part TD.on:hover {
 	background-color: #ff8888;
+}
+
+.part TD.label {
+	width: 80px;
+	text-align: right;
+}
+
+#jam {
+	width: 700px;
+}
+
+UL.instruments {
+	float: left;
+	width: 150px;
+	list-style-type: none;
+	margin: 0;
+}
+
+UL.instruments LI {
+	display: block;
+	padding: 5px;
+	background: #eee;
+	text-align: right;
+	margin-bottom: 5px;
+	font-weight: bold;
+	cursor: pointer;
+}
+
+DIV.part {
+	float: left;
+	border: 1px solid #dddddd;
+	padding: 10px;
 }

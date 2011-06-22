@@ -111,7 +111,7 @@
     JamView.prototype.events = {
       "click .playButton": "play",
       "click .stopButton": "stop",
-      "click .editButton": "editPart"
+      "click .instruments li": "editPart"
     };
     JamView.prototype.editPart = function(instrumentKey) {
       if (instrumentKey.target != null) {
@@ -131,14 +131,12 @@
       return window.player.stop();
     };
     JamView.prototype.render = function() {
-      var buttons, instEl, instrument, instruments, key, _ref;
+      var buttons, instrument, instruments, key, _ref;
       instruments = $('<ul />').addClass('instruments');
       _ref = window.instruments;
       for (key in _ref) {
         instrument = _ref[key];
-        instEl = $('<li />').html(instrument.name + ": ");
-        instEl.append($('<button />').html('Edit').addClass('editButton').data('key', instrument.key));
-        instruments.append(instEl);
+        instruments.append($('<li />').html(instrument.name).data('key', instrument.key));
       }
       buttons = $('<div />');
       buttons.append($('<button />').html('Play').addClass('playButton'));
@@ -404,14 +402,18 @@
     return Player;
   })();
   $(function() {
-    var jamView;
-    console.log("here goes");
+    if (!(window.console != null)) {
+      window.console = {
+        log: function() {}
+      };
+    }
+    console.log("Initializing");
     window.player = new Player;
     window.jam = new Jam;
     window.player.loadJam(window.jam);
-    return jamView = new JamView({
+    return new JamView({
       model: window.jam,
-      el: $('#all')[0]
+      el: $('#jam')[0]
     });
   });
 }).call(this);

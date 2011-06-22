@@ -1,5 +1,5 @@
 - if ('undefined' !== typeof errors && errors.length)
-  ul#errors
+  ul.errors
     - each error in errors
       li.error= error
 form(action='/login', method='POST')

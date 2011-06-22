@@ -52,9 +52,9 @@ class JamView extends Backbone.View
     this.editPart "epiano"
 
   events:
-    "click .playButton": "play"
-    "click .stopButton": "stop"
-    "click .editButton": "editPart"
+    "click .playButton":     "play"
+    "click .stopButton":     "stop"
+    "click .instruments li": "editPart"
 
   editPart: (instrumentKey) ->
     instrumentKey = $(instrumentKey.target).data('key') if instrumentKey.target?
@@ -69,9 +69,7 @@ class JamView extends Backbone.View
   render: ->
     instruments = $('<ul />').addClass('instruments')
     for key, instrument of window.instruments
-      instEl = $('<li />').html(instrument.name + ": ")
-      instEl.append $('<button />').html('Edit').addClass('editButton').data('key', instrument.key)
-      instruments.append instEl
+      instruments.append $('<li />').html(instrument.name).data('key', instrument.key)
     buttons = $('<div />')
     buttons.append $('<button />').html('Play').addClass('playButton')
     buttons.append $('<button />').html('Stop').addClass('stopButton')
@@ -239,8 +237,9 @@ class Player
 
 
 $ ->
-  console.log "here goes"
+  window.console = { log: -> } if !window.console?
+  console.log "Initializing"
   window.player = new Player
   window.jam = new Jam
   window.player.loadJam(window.jam)
-  jamView = new JamView {model: window.jam, el: $('#all')[0]}
+  new JamView {model: window.jam, el: $('#jam')[0]}

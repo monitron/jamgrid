@@ -8,12 +8,19 @@ html(lang="en")
     script(src='/js/jam.js')
     link(href='/main.css',rel='stylesheet',type='text/css')
   body
-    h1 jamgrid
     #authentication
       - if (everyauth.loggedIn)
         .greeting Hello, #{user.login}!
+        ul
+          li
+            a(href="/logout") Log Out
       - else
-        a(href='/register') Sign Up
-        a(href='/login') Log In
-    #body
+        .greeting Why not join us?
+        ul
+          li
+            a(href='/register') Sign Up
+          li
+            a(href='/login') Log In
+    h1 jamgrid
+    #all
       != body
