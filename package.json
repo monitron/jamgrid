@@ -12,7 +12,7 @@
 		{ "name": "Justin Streufert", "email": "monitron@gmail.com" },
 		{ "name": "Kathy Dawson", "email": "tittergrrl@gmail.com" }
 	],
-  "main": "./jamserver.js",
+  "main": "./server.js",
   "dependencies": {
     "express":">=2.3.11",
     "mongoose": ">=1.4.0",

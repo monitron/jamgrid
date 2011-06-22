@@ -25,7 +25,7 @@ Try it out
 * Install npm
 * Install mongodb
 * cd to jamgrid's root and `npm install`
-* `node jamserver.js`
+* `node server.js`
 * Visit `http://localhost:5000/`
 
 Jamgrid works excellently in **Firefox 4+**. It works pretty well in **Chrome** too, though Chrome's HTML 5 `<audio>` tag support seems to be less robust; it flakes out after playing a strenuous song.
