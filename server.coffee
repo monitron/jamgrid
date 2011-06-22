@@ -33,4 +33,4 @@ app.get '/jam/:id', (req, res) ->
 
 mongooseAuth.helpExpress app
 
-app.listen 5000
+app.listen process.env.PORT || 5000
