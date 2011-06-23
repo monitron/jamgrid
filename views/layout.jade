@@ -12,15 +12,13 @@ html(lang="en")
       - if (everyauth.loggedIn)
         .greeting Hello, #{user.login}!
         ul
-          li
-            a(href="/logout") Log Out
+          li: a(href="/logout") Log Out
       - else
         .greeting Why not join us?
         ul
-          li
-            a(href='/register') Sign Up
-          li
-            a(href='/login') Log In
-    h1 jamgrid
+          li: a(href='/register') Sign Up
+          li: a(href='/login') Log In
+    h1
+      a(href='/') jamgrid
     #all
       != body

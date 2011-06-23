@@ -8,10 +8,14 @@ H1, H2, H3 {
 }
 
 H1 {
-	background-color: cornflowerblue;
+	background-color: #8ABD52;
 	font-size: 29px;
 	padding: 10px;
+}
+
+H1 A {
 	color: white;
+	text-decoration: none;
 }
 
 #authentication {
@@ -95,7 +99,7 @@ UL.errors LI {
 }
 
 #jam {
-	width: 700px;
+	width: 700px; /* This is not forever */
 }
 
 UL.instruments {
@@ -107,12 +111,13 @@ UL.instruments {
 
 UL.instruments LI {
 	display: block;
-	padding: 5px;
+	padding: 10px 5px;
 	background: #eee;
 	text-align: right;
-	margin-bottom: 5px;
+	margin: 5px 0px;
 	font-weight: bold;
 	cursor: pointer;
+	border-radius: 5px 0px 0px 5px;
 }
 
 DIV.part {
