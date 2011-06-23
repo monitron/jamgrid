@@ -118,11 +118,13 @@
         instrumentKey = $(instrumentKey.target).data('key');
       }
       this.editingInstrument = instrumentKey;
-      return this.partView = new PartView({
+      this.partView = new PartView({
         jam: this.model,
         instrumentKey: instrumentKey,
         el: this.$('.part')
       });
+      this.$('.instruments li').removeClass('current');
+      return this.$('.instruments li[data-key=' + instrumentKey + ']').addClass('current');
     };
     JamView.prototype.play = function() {
       return window.player.play();
@@ -136,7 +138,7 @@
       _ref = window.instruments;
       for (key in _ref) {
         instrument = _ref[key];
-        instruments.append($('<li />').html(instrument.name).data('key', instrument.key));
+        instruments.append($('<li />').html(instrument.name).attr('data-key', instrument.key));
       }
       buttons = $('<div />');
       buttons.append($('<button />').html('Play').addClass('playButton'));

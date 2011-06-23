@@ -1,8 +1,11 @@
 
+fs = require 'fs'
 io = require 'socket.io'
 mongoose = require 'mongoose'
 express = require 'express'
 mongooseAuth = require 'mongoose-auth'
+less = require 'less'
+
 User = require './models/user'
 
 mongoose.connect 'mongodb://localhost/jamgrid'
@@ -30,6 +33,15 @@ app.get '/jam/:id', (req, res) ->
     res.redirect '/'
     return
   res.render 'jam'
+
+# Render LESS stylesheets from disk
+app.get '/css/:sheet.css', (req, res) ->
+  fs.readFile 'css/' + req.params.sheet + '.less', 'utf8', (err, data) ->
+    throw err if err
+    less.render data, (err, css) ->
+      throw err if err
+      res.contentType "css"
+      res.send css
 
 mongooseAuth.helpExpress app
 

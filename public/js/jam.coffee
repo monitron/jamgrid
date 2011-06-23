@@ -58,9 +58,12 @@ class JamView extends Backbone.View
 
   editPart: (instrumentKey) ->
     instrumentKey = $(instrumentKey.target).data('key') if instrumentKey.target?
-    # XXX Remove old part if any
+    # XXX Remove old part if any (huge DOM leak)
     @editingInstrument = instrumentKey
     @partView = new PartView {jam: @model, instrumentKey: instrumentKey, el: this.$('.part')}
+    # Update appearance of instrument tabs
+    this.$('.instruments li').removeClass('current')
+    this.$('.instruments li[data-key=' + instrumentKey + ']').addClass('current')
 
   play: -> window.player.play()
 
@@ -69,7 +72,7 @@ class JamView extends Backbone.View
   render: ->
     instruments = $('<ul />').addClass('instruments')
     for key, instrument of window.instruments
-      instruments.append $('<li />').html(instrument.name).data('key', instrument.key)
+      instruments.append $('<li />').html(instrument.name).attr('data-key', instrument.key)
     buttons = $('<div />')
     buttons.append $('<button />').html('Play').addClass('playButton')
     buttons.append $('<button />').html('Stop').addClass('stopButton')

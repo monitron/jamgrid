@@ -1,9 +1,11 @@
 (function() {
-  var User, app, express, io, mongoose, mongooseAuth;
+  var User, app, express, fs, io, less, mongoose, mongooseAuth;
+  fs = require('fs');
   io = require('socket.io');
   mongoose = require('mongoose');
   express = require('express');
   mongooseAuth = require('mongoose-auth');
+  less = require('less');
   User = require('./models/user');
   mongoose.connect('mongodb://localhost/jamgrid');
   app = express.createServer(express.bodyParser(), express.static(__dirname + "/public"), express.cookieParser(), express.session({
@@ -24,6 +26,20 @@
       return;
     }
     return res.render('jam');
+  });
+  app.get('/css/:sheet.css', function(req, res) {
+    return fs.readFile('css/' + req.params.sheet + '.less', 'utf8', function(err, data) {
+      if (err) {
+        throw err;
+      }
+      return less.render(data, function(err, css) {
+        if (err) {
+          throw err;
+        }
+        res.contentType("css");
+        return res.send(css);
+      });
+    });
   });
   mongooseAuth.helpExpress(app);
   app.listen(process.env.PORT || 5000);

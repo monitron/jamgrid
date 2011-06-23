@@ -1,0 +1,134 @@
+
+@baseColor: #8abd52;
+@accentColor: #eee;
+@margin: 10px;
+@radius: 6px;
+
+.box-shadow (@x, @y, @blur, @alpha) {
+  @value: @x @y @blur rgba(0, 0, 0, @alpha);
+  box-shadow:         @value;
+  -moz-box-shadow:    @value;
+  -webkit-box-shadow: @value;
+}
+
+BODY {
+	font-family: Helvetica, Arial, sans-serif;
+	margin: 0 @margin;
+}
+
+#outer {
+	width: 980px;
+	margin: 0 auto;
+}
+
+H1, H2, H3 {
+	margin: 0;
+}
+
+H1 {
+	background-color: @baseColor;
+	font-size: 29px;
+	padding: @margin;
+	A {
+		color: white;
+		text-decoration: none;
+	}
+	border-radius: 0 0 @radius @radius;
+	.box-shadow(0, 0, 8px, 0.2);
+}
+
+
+#authentication {
+	float: right;
+	text-align: right;
+	margin: @margin;
+	color: white;
+	font-size: 14px;
+	UL {
+		overflow: hidden;
+		margin: 0;
+		list-style-type: none;
+	}
+	LI {
+		float: left;
+		margin-left: @margin;
+		A {
+			color: white;
+		}
+	}
+}
+
+#all {
+	margin: @margin;
+}
+
+UL.errors {
+	background-color: red;
+	color: white;
+	padding: @margin;
+	border-radius: 5px;
+	LI {
+		margin-left: 20px;
+	}
+}
+
+.part {
+	float: left;
+	border: 1px solid #dddddd;
+	padding: @margin;
+	TABLE {
+		border-collapse: collapse;
+		TD {
+			width: 20px;
+			height: 20px;
+			&.label {
+				padding: 0px 20px;
+				font-weight:bold;
+				width: 80px;
+				text-align: right;
+			}
+			&.current {
+				background-color: #eef;
+			}
+			&.on {
+				background-color: #ff0000;
+				&:hover { background-color: #ff8888; }
+			}
+			&.toggleable {
+				border: 1px solid #ddd;
+				margin: 0;
+				padding: 0;
+				cursor: pointer;
+				&:hover { background-color: #ddd; }
+			}
+		}
+	}
+}
+
+#jam {
+	width: 700px; /* This is not forever */
+}
+
+UL.instruments {
+	float: left;
+	width: 150px;
+	list-style-type: none;
+	margin: 0;
+	LI {
+		display: block;
+		padding: @margin 5px;
+		background: @accentColor;
+		text-align: right;
+		margin: 5px 0px;
+		font-weight: bold;
+		cursor: pointer;
+		border-radius: @radius 0px 0px @radius;
+		border: 2px solid @accentColor;
+		border-right: 0;
+		&:hover { border-color: @baseColor }
+		&.current {
+			background-color: @baseColor;
+			color: white;
+		}
+	}
+}

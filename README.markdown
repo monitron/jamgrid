@@ -28,7 +28,7 @@ Try it out
 * `node server.js`
 * Visit `http://localhost:5000/`
 
-Jamgrid works excellently in **Firefox 4+**. It works pretty well in **Chrome** too, though Chrome's HTML 5 `<audio>` tag support seems to be less robust; it flakes out after playing a strenuous song.
+Jamgrid works excellently in **Firefox 4+** and **Safari**. It works pretty well in **Chrome** too, though Chrome's HTML 5 `<audio>` tag support seems to be less robust; it flakes out after playing a strenuous song.
 
 Once the page loads, click Edit next to an instrument name, click to fill in some squares and press Play. Try live-editing the patterns while they play, layering multiple instruments, etc.
 
