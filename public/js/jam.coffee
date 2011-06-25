@@ -46,6 +46,38 @@ class Jam extends Backbone.Model
     this.get("parts")[instrumentKey] || []
 
 
+class ModalView extends Backbone.View
+  initialize: ->
+    this.render()
+
+  render: ->
+    @curtainEl = $('<div />').addClass('modalCurtain')
+    @el = $('<div />').addClass('modalContainer')
+    this.renderContent()
+    $(document.body).append(@el)
+    $(document.body).append(@curtainEl)
+
+  remove: ->
+    super
+    @curtainEl.remove()
+
+
+class LoadingView extends ModalView
+  initialize: ->
+    super
+    window.player.bind 'sampleloaded', =>
+      this.say "Loading samples (" + window.player.numSamplesLoading() + " remain)"
+    window.player.bind 'ready', => this.remove()
+    this.say "Hold tight"
+
+  say: (message) ->
+    this.$('P').html message
+
+  renderContent: ->
+    @el.append($('<h2 />').html('Prepare to Jam'))
+    @messageEl = @el.append('<p />')
+
+
 class JamView extends Backbone.View
   initialize: ->
     this.render()
@@ -173,12 +205,14 @@ class Player
           audioEl.bind 'canplaythrough', (ev) =>
             sample = $(ev.target)
             sample.data('state', 'ready').unbind()
+            this.trigger 'sampleloaded'
             console.log "Player loaded " + ev.target.src + "!"
             # Sample should take note of when it is done playing
             sample.bind 'ended', (ev) -> $(ev.target).data 'state', 'ready'
             # Are we done preparing yet?
             if this.numSamplesLoading() == 0
               @state = 'ready'
+              this.trigger 'ready'
               console.log "Player ready"
               callback() if callback?
           console.log "Player loading " + filename
@@ -246,3 +280,4 @@ $ ->
   window.jam = new Jam
   window.player.loadJam(window.jam)
   new JamView {model: window.jam, el: $('#jam')[0]}
+  new LoadingView

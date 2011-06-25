@@ -1,5 +1,5 @@
 (function() {
-  var Instrument, Jam, JamView, PartView, PercussionInstrument, PitchedInstrument, Player, _i, _results;
+  var Instrument, Jam, JamView, LoadingView, ModalView, PartView, PercussionInstrument, PitchedInstrument, Player, _i, _results;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
@@ -98,6 +98,51 @@
       return this.get("parts")[instrumentKey] || [];
     };
     return Jam;
+  })();
+  ModalView = (function() {
+    __extends(ModalView, Backbone.View);
+    function ModalView() {
+      ModalView.__super__.constructor.apply(this, arguments);
+    }
+    ModalView.prototype.initialize = function() {
+      return this.render();
+    };
+    ModalView.prototype.render = function() {
+      this.curtainEl = $('<div />').addClass('modalCurtain');
+      this.el = $('<div />').addClass('modalContainer');
+      this.renderContent();
+      $(document.body).append(this.el);
+      return $(document.body).append(this.curtainEl);
+    };
+    ModalView.prototype.remove = function() {
+      ModalView.__super__.remove.apply(this, arguments);
+      return this.curtainEl.remove();
+    };
+    return ModalView;
+  })();
+  LoadingView = (function() {
+    __extends(LoadingView, ModalView);
+    function LoadingView() {
+      LoadingView.__super__.constructor.apply(this, arguments);
+    }
+    LoadingView.prototype.initialize = function() {
+      LoadingView.__super__.initialize.apply(this, arguments);
+      window.player.bind('sampleloaded', __bind(function() {
+        return this.say("Loading samples (" + window.player.numSamplesLoading() + " remain)");
+      }, this));
+      window.player.bind('ready', __bind(function() {
+        return this.remove();
+      }, this));
+      return this.say("Hold tight");
+    };
+    LoadingView.prototype.say = function(message) {
+      return this.$('P').html(message);
+    };
+    LoadingView.prototype.renderContent = function() {
+      this.el.append($('<h2 />').html('Prepare to Jam'));
+      return this.messageEl = this.el.append('<p />');
+    };
+    return LoadingView;
   })();
   JamView = (function() {
     __extends(JamView, Backbone.View);
@@ -294,12 +339,14 @@
                 var sample;
                 sample = $(ev.target);
                 sample.data('state', 'ready').unbind();
+                this.trigger('sampleloaded');
                 console.log("Player loaded " + ev.target.src + "!");
                 sample.bind('ended', function(ev) {
                   return $(ev.target).data('state', 'ready');
                 });
                 if (this.numSamplesLoading() === 0) {
                   this.state = 'ready';
+                  this.trigger('ready');
                   console.log("Player ready");
                   if (callback != null) {
                     return callback();
@@ -413,9 +460,10 @@
     window.player = new Player;
     window.jam = new Jam;
     window.player.loadJam(window.jam);
-    return new JamView({
+    new JamView({
       model: window.jam,
       el: $('#jam')[0]
     });
+    return new LoadingView;
   });
 }).call(this);

@@ -3,6 +3,8 @@
 @accentColor: #eee;
 @margin: 10px;
 @radius: 6px;
+@masterWidth: 980px;
+@contentWidth: @masterWidth - (2 * @margin);
 
 .box-shadow (@x, @y, @blur, @alpha) {
   @value: @x @y @blur rgba(0, 0, 0, @alpha);
@@ -17,7 +19,7 @@ BODY {
 }
 
 #outer {
-	width: 980px;
+	width: @masterWidth;
 	margin: 0 auto;
 }
 
@@ -79,8 +81,8 @@ UL.errors {
 	TABLE {
 		border-collapse: collapse;
 		TD {
-			width: 20px;
-			height: 20px;
+			width: 22px;
+			height: 22px;
 			&.label {
 				padding: 0px 20px;
 				font-weight:bold;
@@ -88,11 +90,7 @@ UL.errors {
 				text-align: right;
 			}
 			&.current {
-				background-color: #eef;
-			}
-			&.on {
-				background-color: #ff0000;
-				&:hover { background-color: #ff8888; }
+				background-color: @accentColor;
 			}
 			&.toggleable {
 				border: 1px solid #ddd;
@@ -101,19 +99,30 @@ UL.errors {
 				cursor: pointer;
 				&:hover { background-color: #ddd; }
 			}
+			&.on {
+				background-color: darken(@baseColor, 15%);
+				&:hover { background-color: @baseColor; }
+			}
 		}
 	}
 }
 
 #jam {
-	width: 700px; /* This is not forever */
+	width: 700px;
+	float: left;
+}
+#social {
+	width: @contentWidth - 700px - @margin;
+	margin-left: 10px;
+	float: left;
 }
 
 UL.instruments {
 	float: left;
-	width: 150px;
+	width: 180px;
 	list-style-type: none;
 	margin: 0;
+	padding: 0;
 	LI {
 		display: block;
 		padding: @margin 5px;
@@ -130,5 +139,37 @@ UL.instruments {
 			background-color: @baseColor;
 			color: white;
 		}
+	}
+}
+
+
+.modalCurtain {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	background-color: black;
+	opacity: 0.6;
+	z-index: 100;
+}
+
+.modalContainer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	width: 40%;
+	height: 30%;
+	border: 10px solid @baseColor;
+	background-color: white;
+	padding: @margin;
+	margin: auto;
+	z-index: 101;
+	border-radius: @radius;
+	.box-shadow(0, 0, 15px, 0.4);
+	P {
+		font-size: 18px;
 	}
 }
