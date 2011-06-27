@@ -31,16 +31,11 @@ window.instruments =
     ['bass', 'closedhat', 'openhat', 'snare', 'cymbal', 'clap', 'cowbell'])
 
 class Jam extends Backbone.Model
-  defaults:
-    parts: {}
-    scale: "Minor Pentatonic"
-    patternLength: 16 # beats
-    speed: 280 # beats per minute
-
-  setPart: (instrumentKey, part) ->
+  setPart: (instrumentKey, part, fromServer = false) ->
     parts = _.clone(this.get("parts"))
     parts[instrumentKey] = part
-    this.set({parts: parts})
+    this.set {parts: parts}
+    this.trigger("userchangedpart", instrumentKey, part) unless fromServer
 
   getPart: (instrumentKey) ->
     this.get("parts")[instrumentKey] || []
@@ -65,10 +60,13 @@ class ModalView extends Backbone.View
 class LoadingView extends ModalView
   initialize: ->
     super
+    this.say "Reticulating splines"
+    window.client.bind 'connecting', => this.say "Connecting to server"
+    window.client.bind 'connected', => this.say "Joining jam"
+    window.client.bind 'jamloaded', => this.say "Loading samples"
     window.player.bind 'sampleloaded', =>
       this.say "Loading samples (" + window.player.numSamplesLoading() + " remain)"
     window.player.bind 'ready', => this.remove()
-    this.say "Hold tight"
 
   say: (message) ->
     this.$('P').html message
@@ -80,8 +78,9 @@ class LoadingView extends ModalView
 
 class JamView extends Backbone.View
   initialize: ->
-    this.render()
-    this.editPart "epiano"
+    _.defer => # Give others a chance to bind events first
+      this.render()
+      this.editPart "epiano"
 
   events:
     "click .playButton":     "play"
@@ -90,7 +89,8 @@ class JamView extends Backbone.View
 
   editPart: (instrumentKey) ->
     instrumentKey = $(instrumentKey.target).data('key') if instrumentKey.target?
-    # XXX Remove old part if any (huge DOM leak)
+    this.trigger 'editing', instrumentKey
+    # XXX Remove old part if any (huge leak)
     @editingInstrument = instrumentKey
     @partView = new PartView {jam: @model, instrumentKey: instrumentKey, el: this.$('.part')}
     # Update appearance of instrument tabs
@@ -121,8 +121,9 @@ class PartView extends Backbone.View
     @beats = [0..@jam.get('patternLength') - 1]
     @sounds = @instrument.soundsForScale(@scale)
     this.render()
-    this.setCells @jam.getPart(@options.instrumentKey)
     window.player.bind 'beat', (num) => this.setCurrentBeat(num)
+    @jam.bind 'change:parts', => this.populateFromJam()
+    this.populateFromJam()
 
   events:
     "click TD.toggleable": "toggleCell"
@@ -141,6 +142,9 @@ class PartView extends Backbone.View
     container.append table
     container.append $('<button />').html('Clear').addClass('clearButton')
     $(@el).html(container)
+
+  populateFromJam: ->
+    this.setCells @jam.getPart(@options.instrumentKey)
 
   toggleCell: (event) ->
     $(event.target).toggleClass('on')
@@ -173,6 +177,36 @@ class PartView extends Backbone.View
       cell = $(cell)
       part[cell.data('beat')].push(cell.data('sound'))
     @jam.setPart(@options.instrumentKey, part)
+
+
+class Client
+  constructor: ->
+    _.extend this, Backbone.Events # there's probably a better way to do this!
+    @jamid = _.last(document.location.pathname.split("/"))
+    @sessionid = $.cookie('connect.sid')
+    console.log "Trying to connect"
+    this.trigger 'connecting'
+    @socket = io.connect()
+    @socket.on 'welcome', =>
+      this.trigger 'connected'
+      console.log "We were welcomed"
+      @socket.emit 'identify', @sessionid, @jamid
+
+    @socket.on 'initjam', (jamdata) =>
+      this.trigger 'jamloaded'
+      window.jam = new Jam(jamdata)
+      window.player.loadJam(window.jam)
+      view = new JamView {model: window.jam, el: $('#jam')[0]}
+      window.jam.bind 'userchangedpart', (instKey, data) =>
+        @socket.emit 'writepart', instKey, data
+      view.bind 'editing', (instKey) =>
+        @socket.emit 'editing', instKey
+
+    @socket.on 'partchange', (instKey, data) =>
+      window.jam.setPart instKey, data, true
+
+    @socket.on 'editing', (login, instKey) =>
+      console.log login + " is now editing " + instKey
 
 
 class Player
@@ -277,7 +311,5 @@ $ ->
   window.console = { log: -> } if !window.console?
   console.log "Initializing"
   window.player = new Player
-  window.jam = new Jam
-  window.player.loadJam(window.jam)
-  new JamView {model: window.jam, el: $('#jam')[0]}
+  window.client = new Client
   new LoadingView

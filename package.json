@@ -18,8 +18,9 @@
     "mongoose": ">=1.4.0",
 		"jade": ">=0.12.1",
 		"mongoose-auth": ">=0.0.10",
-		"socket.io": ">=0.6.18",
-		"less": ">=1.1.2"
+		"socket.io": ">=0.7.0",
+		"less": ">=1.1.2",
+		"connect-mongo": ">=0.1.2"
   },
   "devDependencies": {
     "coffee-script": ">=1.1.1"

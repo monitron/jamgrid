@@ -6,15 +6,24 @@ express = require 'express'
 mongooseAuth = require 'mongoose-auth'
 less = require 'less'
 
-User = require './models/user'
+config = require './config'
 
-mongoose.connect 'mongodb://localhost/jamgrid'
+User = require './models/user'
+Jam = require './models/jam'
+sessions = require './sessions'
+realtime = require './realtime'
+
+mongoose.connect 'mongodb://localhost/' + config.mongo_db
 
 app = express.createServer(
   express.bodyParser(),
   express.static(__dirname + "/public"),
   express.cookieParser(),
-  express.session({secret: 'QuiteSomeSecret'}),
+  express.session({
+    secret: config.session_secret,
+    cookie: {path: '/', httpOnly: false, maxAge: 360 * 24 * 7},
+    store: sessions
+  }),
   mongooseAuth.middleware()
 )
 
@@ -24,9 +33,15 @@ app.configure ->
 app.get '/', (req, res) ->
   res.render 'welcome'
 
-app.get "/instruments/:inst/:sound.:format", (req, res) ->
-  res.sendfile "assets/instruments/" + req.params.inst + "/" +
-    req.params.sound + "." + req.params.format
+app.get '/jam/new', (req, res) ->
+  unless req.loggedIn
+    res.redirect '/'
+    return
+  jam = new Jam {creator: req.user.id, artists: [req.user.id]}
+  jam.save (err) ->
+    throw err if err
+    res.redirect '/jam/' + jam.id
+
 
 app.get '/jam/:id', (req, res) ->
   unless req.loggedIn
@@ -45,4 +60,5 @@ app.get '/css/:sheet.css', (req, res) ->
 
 mongooseAuth.helpExpress app
 
-app.listen process.env.PORT || 5000
+app.listen config.http_port
+realtime io.listen(app)

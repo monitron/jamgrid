@@ -1,5 +1,5 @@
 (function() {
-  var Instrument, Jam, JamView, LoadingView, ModalView, PartView, PercussionInstrument, PitchedInstrument, Player, _i, _results;
+  var Client, Instrument, Jam, JamView, LoadingView, ModalView, PartView, PercussionInstrument, PitchedInstrument, Player, _i, _results;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
@@ -80,19 +80,19 @@
     function Jam() {
       Jam.__super__.constructor.apply(this, arguments);
     }
-    Jam.prototype.defaults = {
-      parts: {},
-      scale: "Minor Pentatonic",
-      patternLength: 16,
-      speed: 280
-    };
-    Jam.prototype.setPart = function(instrumentKey, part) {
+    Jam.prototype.setPart = function(instrumentKey, part, fromServer) {
       var parts;
+      if (fromServer == null) {
+        fromServer = false;
+      }
       parts = _.clone(this.get("parts"));
       parts[instrumentKey] = part;
-      return this.set({
+      this.set({
         parts: parts
       });
+      if (!fromServer) {
+        return this.trigger("userchangedpart", instrumentKey, part);
+      }
     };
     Jam.prototype.getPart = function(instrumentKey) {
       return this.get("parts")[instrumentKey] || [];
@@ -127,13 +127,22 @@
     }
     LoadingView.prototype.initialize = function() {
       LoadingView.__super__.initialize.apply(this, arguments);
+      this.say("Reticulating splines");
+      window.client.bind('connecting', __bind(function() {
+        return this.say("Connecting to server");
+      }, this));
+      window.client.bind('connected', __bind(function() {
+        return this.say("Joining jam");
+      }, this));
+      window.client.bind('jamloaded', __bind(function() {
+        return this.say("Loading samples");
+      }, this));
       window.player.bind('sampleloaded', __bind(function() {
         return this.say("Loading samples (" + window.player.numSamplesLoading() + " remain)");
       }, this));
-      window.player.bind('ready', __bind(function() {
+      return window.player.bind('ready', __bind(function() {
         return this.remove();
       }, this));
-      return this.say("Hold tight");
     };
     LoadingView.prototype.say = function(message) {
       return this.$('P').html(message);
@@ -150,8 +159,10 @@
       JamView.__super__.constructor.apply(this, arguments);
     }
     JamView.prototype.initialize = function() {
-      this.render();
-      return this.editPart("epiano");
+      return _.defer(__bind(function() {
+        this.render();
+        return this.editPart("epiano");
+      }, this));
     };
     JamView.prototype.events = {
       "click .playButton": "play",
@@ -162,6 +173,7 @@
       if (instrumentKey.target != null) {
         instrumentKey = $(instrumentKey.target).data('key');
       }
+      this.trigger('editing', instrumentKey);
       this.editingInstrument = instrumentKey;
       this.partView = new PartView({
         jam: this.model,
@@ -211,10 +223,13 @@
       }).apply(this, arguments);
       this.sounds = this.instrument.soundsForScale(this.scale);
       this.render();
-      this.setCells(this.jam.getPart(this.options.instrumentKey));
-      return window.player.bind('beat', __bind(function(num) {
+      window.player.bind('beat', __bind(function(num) {
         return this.setCurrentBeat(num);
       }, this));
+      this.jam.bind('change:parts', __bind(function() {
+        return this.populateFromJam();
+      }, this));
+      return this.populateFromJam();
     };
     PartView.prototype.events = {
       "click TD.toggleable": "toggleCell",
@@ -240,6 +255,9 @@
       container.append(table);
       container.append($('<button />').html('Clear').addClass('clearButton'));
       return $(this.el).html(container);
+    };
+    PartView.prototype.populateFromJam = function() {
+      return this.setCells(this.jam.getPart(this.options.instrumentKey));
     };
     PartView.prototype.toggleCell = function(event) {
       $(event.target).toggleClass('on');
@@ -296,6 +314,44 @@
       return this.jam.setPart(this.options.instrumentKey, part);
     };
     return PartView;
+  })();
+  Client = (function() {
+    function Client() {
+      _.extend(this, Backbone.Events);
+      this.jamid = _.last(document.location.pathname.split("/"));
+      this.sessionid = $.cookie('connect.sid');
+      console.log("Trying to connect");
+      this.trigger('connecting');
+      this.socket = io.connect();
+      this.socket.on('welcome', __bind(function() {
+        this.trigger('connected');
+        console.log("We were welcomed");
+        return this.socket.emit('identify', this.sessionid, this.jamid);
+      }, this));
+      this.socket.on('initjam', __bind(function(jamdata) {
+        var view;
+        this.trigger('jamloaded');
+        window.jam = new Jam(jamdata);
+        window.player.loadJam(window.jam);
+        view = new JamView({
+          model: window.jam,
+          el: $('#jam')[0]
+        });
+        window.jam.bind('userchangedpart', __bind(function(instKey, data) {
+          return this.socket.emit('writepart', instKey, data);
+        }, this));
+        return view.bind('editing', __bind(function(instKey) {
+          return this.socket.emit('editing', instKey);
+        }, this));
+      }, this));
+      this.socket.on('partchange', __bind(function(instKey, data) {
+        return window.jam.setPart(instKey, data, true);
+      }, this));
+      this.socket.on('editing', __bind(function(login, instKey) {
+        return console.log(login + " is now editing " + instKey);
+      }, this));
+    }
+    return Client;
   })();
   Player = (function() {
     Player.prototype.format = "wav";
@@ -458,12 +514,7 @@
     }
     console.log("Initializing");
     window.player = new Player;
-    window.jam = new Jam;
-    window.player.loadJam(window.jam);
-    new JamView({
-      model: window.jam,
-      el: $('#jam')[0]
-    });
+    window.client = new Client;
     return new LoadingView;
   });
 }).call(this);

@@ -28,6 +28,5 @@ UserSchema.plugin mongooseAuth, {
   }
 }
 
-User = mongoose.model('User', UserSchema)
-
+User = mongoose.model 'User', UserSchema
 module.exports = User
