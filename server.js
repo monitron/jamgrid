@@ -1,5 +1,6 @@
 (function() {
   var Jam, User, app, config, express, fs, io, less, mongoose, mongooseAuth, realtime, sessions;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   fs = require('fs');
   io = require('socket.io');
   mongoose = require('mongoose');
@@ -17,7 +18,7 @@
     cookie: {
       path: '/',
       httpOnly: false,
-      maxAge: 360 * 24 * 7
+      maxAge: 360 * 24 * 7 * 1000
     },
     store: sessions
   }), mongooseAuth.middleware());
@@ -25,7 +26,20 @@
     return app.set('view engine', 'jade');
   });
   app.get('/', function(req, res) {
-    return res.render('welcome');
+    if (req.loggedIn) {
+      return Jam.find({
+        artists: req.user.id
+      }, __bind(function(err, jams) {
+        if (err) {
+          throw err;
+        }
+        return res.render('welcome', {
+          jams: jams
+        });
+      }, this));
+    } else {
+      return res.render('welcome');
+    }
   });
   app.get('/jam/new', function(req, res) {
     var jam;

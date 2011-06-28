@@ -21,7 +21,7 @@ app = express.createServer(
   express.cookieParser(),
   express.session({
     secret: config.session_secret,
-    cookie: {path: '/', httpOnly: false, maxAge: 360 * 24 * 7},
+    cookie: {path: '/', httpOnly: false, maxAge: 360 * 24 * 7 * 1000},
     store: sessions
   }),
   mongooseAuth.middleware()
@@ -31,7 +31,12 @@ app.configure ->
   app.set 'view engine', 'jade'
 
 app.get '/', (req, res) ->
-  res.render 'welcome'
+  if req.loggedIn
+    Jam.find {artists: req.user.id}, (err, jams) =>
+      throw err if err
+      res.render 'welcome', {jams: jams}
+  else
+    res.render 'welcome'
 
 app.get '/jam/new', (req, res) ->
   unless req.loggedIn
@@ -41,7 +46,6 @@ app.get '/jam/new', (req, res) ->
   jam.save (err) ->
     throw err if err
     res.redirect '/jam/' + jam.id
-
 
 app.get '/jam/:id', (req, res) ->
   unless req.loggedIn

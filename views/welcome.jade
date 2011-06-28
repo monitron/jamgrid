@@ -1,5 +1,11 @@
 p Welcome to JamGrid! This thing barely works at the moment.
-p
-  | After logging in,
-  a(href='/jam/new') click here
-  |  to commence jamming.
+- if (everyauth.loggedIn)
+  - if (jams.length)
+    p Your existing jams:
+    ul
+      - jams.forEach(function(jam) {
+        li: a(href='/jam/#{jam.id}')= jam.id
+      - })
+  p: a(href='/jam/new') Start a new jam
+- else
+  p Please log in!
