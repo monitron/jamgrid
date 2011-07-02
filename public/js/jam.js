@@ -1,5 +1,5 @@
 (function() {
-  var Client, Instrument, Jam, JamView, LoadingView, ModalView, PartView, PercussionInstrument, PitchedInstrument, Player, _i, _results;
+  var Client, ErrorView, HTML5Player, Instrument, Jam, JamView, LoadingView, ModalView, PartView, PercussionInstrument, PitchedInstrument, Player, SoundManagerPlayer, _i, _results;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
@@ -60,7 +60,7 @@
     }
     PercussionInstrument.prototype.iconFilename = function(soundKey) {
       this.soundKey = soundKey;
-      return "/images/instruments/" + this.key + "/sounds/" + this.soundKey + ".png";
+      return "/instruments/" + this.key + "/" + this.soundKey + ".png";
     };
     PercussionInstrument.prototype.soundsForScale = function(scale) {
       return this.sounds;
@@ -119,6 +119,22 @@
       return this.curtainEl.remove();
     };
     return ModalView;
+  })();
+  ErrorView = (function() {
+    __extends(ErrorView, ModalView);
+    function ErrorView() {
+      ErrorView.__super__.constructor.apply(this, arguments);
+    }
+    ErrorView.prototype.initialize = function(error) {
+      this.error = error;
+      ErrorView.__super__.initialize.apply(this, arguments);
+      return this.el.addClass('error');
+    };
+    ErrorView.prototype.renderContent = function() {
+      this.el.append($('<h2 />').html('Bad News :('));
+      return this.el.append($('<p />').html(this.error));
+    };
+    return ErrorView;
   })();
   LoadingView = (function() {
     __extends(LoadingView, ModalView);
@@ -236,13 +252,18 @@
       "click .clearButton": "resetPattern"
     };
     PartView.prototype.render = function() {
-      var beat, container, row, sound, table, _j, _k, _len, _len2, _ref, _ref2;
+      var beat, container, label, row, sound, table, _j, _k, _len, _len2, _ref, _ref2;
       table = $('<table />');
       _ref = this.sounds;
       for (_j = 0, _len = _ref.length; _j < _len; _j++) {
         sound = _ref[_j];
         row = $('<tr />');
-        row.append($('<td />').html(sound).addClass('label'));
+        if (this.instrument.iconFilename != null) {
+          label = $('<img />').attr('src', this.instrument.iconFilename(sound));
+        } else {
+          label = '';
+        }
+        row.append($('<td />').html(label).addClass('label'));
         _ref2 = this.beats;
         for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
           beat = _ref2[_k];
@@ -330,14 +351,17 @@
       }, this));
       this.socket.on('initjam', __bind(function(jamdata) {
         var view;
+        if (this.jam != null) {
+          return;
+        }
         this.trigger('jamloaded');
-        window.jam = new Jam(jamdata);
-        window.player.loadJam(window.jam);
+        this.jam = new Jam(jamdata);
+        window.player.loadJam(this.jam);
         view = new JamView({
-          model: window.jam,
+          model: this.jam,
           el: $('#jam')[0]
         });
-        window.jam.bind('userchangedpart', __bind(function(instKey, data) {
+        this.jam.bind('userchangedpart', __bind(function(instKey, data) {
           return this.socket.emit('writepart', instKey, data);
         }, this));
         return view.bind('editing', __bind(function(instKey) {
@@ -345,7 +369,7 @@
         }, this));
       }, this));
       this.socket.on('partchange', __bind(function(instKey, data) {
-        return window.jam.setPart(instKey, data, true);
+        return this.jam.setPart(instKey, data, true);
       }, this));
       this.socket.on('editing', __bind(function(login, instKey) {
         return console.log(login + " is now editing " + instKey);
@@ -356,10 +380,8 @@
   Player = (function() {
     Player.prototype.format = "wav";
     Player.prototype.tickInterval = 5;
-    Player.prototype.samplePolyphony = 2;
     function Player() {
       _.extend(this, Backbone.Events);
-      this.samples = {};
       this.state = "unprepared";
       console.log("Player feels woefully unprepared");
     }
@@ -374,77 +396,6 @@
       console.log("Player loaded jam");
       return this.prepare();
     };
-    Player.prototype.prepare = function(callback) {
-      var audioEl, filename, instrument, key, num, sound, _j, _len, _ref, _ref2;
-      _ref = window.instruments;
-      for (key in _ref) {
-        instrument = _ref[key];
-        _ref2 = instrument.soundsForScale(this.scale);
-        for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
-          sound = _ref2[_j];
-          filename = instrument.filename(sound, this.format);
-          this.samples[filename] = (function() {
-            var _ref3, _results2;
-            _results2 = [];
-            for (num = 1, _ref3 = this.samplePolyphony; 1 <= _ref3 ? num <= _ref3 : num >= _ref3; 1 <= _ref3 ? num++ : num--) {
-              audioEl = $('<audio />').attr('src', filename).data({
-                state: 'loading',
-                n: num
-              });
-              audioEl.bind('canplaythrough', __bind(function(ev) {
-                var sample;
-                sample = $(ev.target);
-                sample.data('state', 'ready').unbind();
-                this.trigger('sampleloaded');
-                console.log("Player loaded " + ev.target.src + "!");
-                sample.bind('ended', function(ev) {
-                  return $(ev.target).data('state', 'ready');
-                });
-                if (this.numSamplesLoading() === 0) {
-                  this.state = 'ready';
-                  this.trigger('ready');
-                  console.log("Player ready");
-                  if (callback != null) {
-                    return callback();
-                  }
-                }
-              }, this));
-              console.log("Player loading " + filename);
-              _results2.push(audioEl[0]);
-            }
-            return _results2;
-          }).call(this);
-        }
-      }
-      return this.state = "preparing";
-    };
-    Player.prototype.numSamplesLoading = function() {
-      var el;
-      return ((function() {
-        var _j, _len, _ref, _results2;
-        _ref = _.flatten(this.samples);
-        _results2 = [];
-        for (_j = 0, _len = _ref.length; _j < _len; _j++) {
-          el = _ref[_j];
-          if ($(el).data('state') === 'loading') {
-            _results2.push(1);
-          }
-        }
-        return _results2;
-      }).call(this)).length;
-    };
-    Player.prototype.readyElementForSample = function(filename) {
-      var el, _j, _len, _ref;
-      _ref = this.samples[filename];
-      for (_j = 0, _len = _ref.length; _j < _len; _j++) {
-        el = _ref[_j];
-        if ($(el).data('state') === 'ready') {
-          return el;
-        }
-      }
-      console.log("Player sample elements exhausted for " + filename);
-      return null;
-    };
     Player.prototype.beginPattern = function() {
       console.log("Player beginning pattern");
       return this.patternPos = 0;
@@ -458,7 +409,7 @@
       }
     };
     Player.prototype.beat = function() {
-      var instrument, instrumentKey, needsPlaying, part, sample, sound, _j, _len, _ref, _ref2;
+      var instrument, instrumentKey, part, sound, _j, _len, _ref, _ref2;
       console.log("Player: beat! pos = " + this.patternPos);
       if (this.patternPos === this.patternLength) {
         this.beginPattern();
@@ -470,14 +421,7 @@
         _ref2 = part[this.patternPos];
         for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
           sound = _ref2[_j];
-          if (sample = this.readyElementForSample(instrument.filename(sound, this.format))) {
-            $(sample).data('state', 'playing');
-            needsPlaying = sample.currentTime === 0;
-            sample.currentTime = 0;
-            if (needsPlaying) {
-              sample.play();
-            }
-          }
+          this.playSound(instrument, sound);
         }
       }
       this.trigger('beat', this.patternPos);
@@ -506,6 +450,162 @@
     };
     return Player;
   })();
+  HTML5Player = (function() {
+    __extends(HTML5Player, Player);
+    HTML5Player.prototype.samplePolyphony = 2;
+    function HTML5Player() {
+      HTML5Player.__super__.constructor.apply(this, arguments);
+      this.samples = {};
+    }
+    HTML5Player.prototype.prepare = function() {
+      var audioEl, filename, instrument, key, num, sound, _j, _len, _ref, _ref2;
+      _ref = window.instruments;
+      for (key in _ref) {
+        instrument = _ref[key];
+        _ref2 = instrument.soundsForScale(this.scale);
+        for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
+          sound = _ref2[_j];
+          filename = instrument.filename(sound, this.format);
+          this.samples[filename] = (function() {
+            var _ref3, _results2;
+            _results2 = [];
+            for (num = 1, _ref3 = this.samplePolyphony; 1 <= _ref3 ? num <= _ref3 : num >= _ref3; 1 <= _ref3 ? num++ : num--) {
+              audioEl = $('<audio />').attr('src', filename).data({
+                state: 'loading',
+                n: num
+              });
+              audioEl.bind('canplaythrough', __bind(function(ev) {
+                var sample;
+                sample = $(ev.target);
+                sample.data('state', 'ready').unbind();
+                this.trigger('sampleloaded');
+                console.log("Player loaded " + ev.target.src + "!");
+                sample.bind('ended', function(ev) {
+                  return $(ev.target).data('state', 'ready');
+                });
+                if (this.numSamplesLoading() === 0) {
+                  this.state = 'ready';
+                  this.trigger('ready');
+                  return console.log("Player ready");
+                }
+              }, this));
+              console.log("Player loading " + filename);
+              _results2.push(audioEl[0]);
+            }
+            return _results2;
+          }).call(this);
+        }
+      }
+      return this.state = "preparing";
+    };
+    HTML5Player.prototype.numSamplesLoading = function() {
+      var el;
+      return ((function() {
+        var _j, _len, _ref, _results2;
+        _ref = _.flatten(this.samples);
+        _results2 = [];
+        for (_j = 0, _len = _ref.length; _j < _len; _j++) {
+          el = _ref[_j];
+          if ($(el).data('state') === 'loading') {
+            _results2.push(1);
+          }
+        }
+        return _results2;
+      }).call(this)).length;
+    };
+    HTML5Player.prototype.readyElementForSample = function(filename) {
+      var el, _j, _len, _ref;
+      _ref = this.samples[filename];
+      for (_j = 0, _len = _ref.length; _j < _len; _j++) {
+        el = _ref[_j];
+        if ($(el).data('state') === 'ready') {
+          return el;
+        }
+      }
+      console.log("Player sample elements exhausted for " + filename);
+      return null;
+    };
+    HTML5Player.prototype.playSound = function(instrument, sound) {
+      var needsPlaying, sample;
+      if (sample = this.readyElementForSample(instrument.filename(sound, this.format))) {
+        $(sample).data('state', 'playing');
+        needsPlaying = sample.currentTime === 0;
+        sample.currentTime = 0;
+        if (needsPlaying) {
+          return sample.play();
+        }
+      }
+    };
+    return HTML5Player;
+  })();
+  SoundManagerPlayer = (function() {
+    __extends(SoundManagerPlayer, Player);
+    SoundManagerPlayer.prototype.format = "mp3";
+    function SoundManagerPlayer() {
+      SoundManagerPlayer.__super__.constructor.apply(this, arguments);
+      this.sm = window.soundManager;
+      this.samplesLoading = 0;
+    }
+    SoundManagerPlayer.prototype.prepare = function(callback) {
+      this.state = "preparing";
+      this.sm.ontimeout(function() {
+        this.state = "broken";
+        return new ErrorView("Your platform requires Flash to play audio reliably, but Flash failed to load. Please disable any Flash blocker and reload the page.");
+      });
+      return this.sm.onready(__bind(function() {
+        var filename, instrument, key, sound, _ref, _results2;
+        console.log("sm is ready");
+        _ref = window.instruments;
+        _results2 = [];
+        for (key in _ref) {
+          instrument = _ref[key];
+          _results2.push((function() {
+            var _j, _len, _ref2, _results3;
+            _ref2 = instrument.soundsForScale(this.scale);
+            _results3 = [];
+            for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
+              sound = _ref2[_j];
+              filename = instrument.filename(sound, this.format);
+              this.samplesLoading += 1;
+              _results3.push(this.sm.createSound({
+                id: filename,
+                url: filename,
+                autoLoad: true,
+                autoPlay: false,
+                volume: 50,
+                onload: __bind(function() {
+                  this.samplesLoading -= 1;
+                  console.log("SM loaded " + filename + "!");
+                  this.trigger('sampleloaded');
+                  if (this.samplesLoading === 0) {
+                    this.state = 'ready';
+                    this.trigger('ready');
+                    return console.log("Player ready");
+                  }
+                }, this)
+              }));
+            }
+            return _results3;
+          }).call(this));
+        }
+        return _results2;
+      }, this));
+    };
+    SoundManagerPlayer.prototype.numSamplesLoading = function() {
+      return this.samplesLoading;
+    };
+    SoundManagerPlayer.prototype.playSound = function(instrument, sound) {
+      return this.sm.play(instrument.filename(sound, this.format));
+    };
+    return SoundManagerPlayer;
+  })();
+  if (window.soundManager != null) {
+    window.soundManager.url = '/swf/';
+  }
+  window.soundManager.flashVersion = 9;
+  window.soundManager.useHighPerformance = true;
+  window.soundManager.useConsole = false;
+  window.soundManager.debugMode = false;
   $(function() {
     if (!(window.console != null)) {
       window.console = {
@@ -513,7 +613,7 @@
       };
     }
     console.log("Initializing");
-    window.player = new Player;
+    window.player = new SoundManagerPlayer;
     window.client = new Client;
     return new LoadingView;
   });

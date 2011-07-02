@@ -20,7 +20,7 @@ class PercussionInstrument extends Instrument
   constructor: (@key, @name, @sounds) ->
 
   iconFilename: (@soundKey) ->
-    "/images/instruments/" + @key + "/sounds/" + @soundKey + ".png"
+    "/instruments/" + @key + "/" + @soundKey + ".png"
 
   soundsForScale: (scale) ->
     @sounds
@@ -49,12 +49,23 @@ class ModalView extends Backbone.View
     @curtainEl = $('<div />').addClass('modalCurtain')
     @el = $('<div />').addClass('modalContainer')
     this.renderContent()
-    $(document.body).append(@el)
-    $(document.body).append(@curtainEl)
+    $(document.body).append @el
+    $(document.body).append @curtainEl
 
   remove: ->
     super
     @curtainEl.remove()
+
+
+class ErrorView extends ModalView
+  initialize: (error) ->
+    @error = error
+    super
+    @el.addClass 'error'
+
+  renderContent: ->
+    @el.append $('<h2 />').html('Bad News :(')
+    @el.append $('<p />').html(@error)
 
 
 class LoadingView extends ModalView
@@ -133,7 +144,11 @@ class PartView extends Backbone.View
     table = $('<table />')
     for sound in @sounds
       row = $('<tr />')
-      row.append($('<td />').html(sound).addClass('label'))
+      if @instrument.iconFilename?
+        label = $('<img />').attr('src', @instrument.iconFilename(sound))
+      else
+        label = ''
+      row.append($('<td />').html(label).addClass('label'))
       for beat in @beats
         row.append($('<td />').attr('data-beat', beat).attr('data-sound', sound).addClass('toggleable'))
       table.prepend(row)
@@ -193,30 +208,28 @@ class Client
       @socket.emit 'identify', @sessionid, @jamid
 
     @socket.on 'initjam', (jamdata) =>
+      return if @jam? # Don't reload on reconnect
       this.trigger 'jamloaded'
-      window.jam = new Jam(jamdata)
-      window.player.loadJam(window.jam)
-      view = new JamView {model: window.jam, el: $('#jam')[0]}
-      window.jam.bind 'userchangedpart', (instKey, data) =>
+      @jam = new Jam(jamdata)
+      window.player.loadJam(@jam)
+      view = new JamView {model: @jam, el: $('#jam')[0]}
+      @jam.bind 'userchangedpart', (instKey, data) =>
         @socket.emit 'writepart', instKey, data
       view.bind 'editing', (instKey) =>
         @socket.emit 'editing', instKey
 
     @socket.on 'partchange', (instKey, data) =>
-      window.jam.setPart instKey, data, true
+      @jam.setPart instKey, data, true
 
     @socket.on 'editing', (login, instKey) =>
       console.log login + " is now editing " + instKey
 
-
 class Player
   format: "wav"
   tickInterval: 5    # Milliseconds between beat checks (ticks)
-  samplePolyphony: 2 # Number of <audio> elements per sample
 
   constructor: ->
     _.extend this, Backbone.Events # there's probably a better way to do this!
-    @samples = {}
     @state = "unprepared"
     console.log "Player feels woefully unprepared"
 
@@ -228,40 +241,6 @@ class Player
     jam.bind "change:parts", => @parts = jam.get("parts")
     console.log "Player loaded jam"
     this.prepare()
-
-  # Load all relevant sounds
-  prepare: (callback) ->
-    for key, instrument of window.instruments
-      for sound in instrument.soundsForScale(@scale)
-        filename = instrument.filename(sound, @format)
-        @samples[filename] = for num in [1..@samplePolyphony]
-          audioEl = $('<audio />').attr('src', filename).data({state: 'loading', n: num})
-          audioEl.bind 'canplaythrough', (ev) =>
-            sample = $(ev.target)
-            sample.data('state', 'ready').unbind()
-            this.trigger 'sampleloaded'
-            console.log "Player loaded " + ev.target.src + "!"
-            # Sample should take note of when it is done playing
-            sample.bind 'ended', (ev) -> $(ev.target).data 'state', 'ready'
-            # Are we done preparing yet?
-            if this.numSamplesLoading() == 0
-              @state = 'ready'
-              this.trigger 'ready'
-              console.log "Player ready"
-              callback() if callback?
-          console.log "Player loading " + filename
-          audioEl[0]
-    @state = "preparing"
-
-  numSamplesLoading: ->
-    (1 for el in _.flatten(@samples) when $(el).data('state') == 'loading').length
-
-  readyElementForSample: (filename) ->
-    for el in @samples[filename]
-      return el if $(el).data('state') == 'ready'
-    console.log "Player sample elements exhausted for " + filename
-    # TODO Pick one to restart?
-    return null
 
   beginPattern: ->
     console.log "Player beginning pattern"
@@ -278,12 +257,7 @@ class Player
     this.beginPattern() if @patternPos == @patternLength
     for instrumentKey, part of @parts
       instrument = window.instruments[instrumentKey]
-      for sound in part[@patternPos]
-        if sample = this.readyElementForSample(instrument.filename(sound, @format))
-          $(sample).data 'state', 'playing'
-          needsPlaying = sample.currentTime == 0
-          sample.currentTime = 0
-          sample.play() if needsPlaying
+      this.playSound instrument, sound for sound in part[@patternPos]
     this.trigger 'beat', @patternPos
     @patternPos += 1
 
@@ -307,9 +281,109 @@ class Player
     clearInterval @tickIntervalID
 
 
+class HTML5Player extends Player
+  samplePolyphony: 2 # Number of <audio> elements per sample
+
+  constructor: ->
+    super
+    @samples = {}
+
+  # Load all relevant sounds
+  prepare: ->
+    for key, instrument of window.instruments
+      for sound in instrument.soundsForScale(@scale)
+        filename = instrument.filename(sound, @format)
+        @samples[filename] = for num in [1..@samplePolyphony]
+          audioEl = $('<audio />').attr('src', filename).data({state: 'loading', n: num})
+          audioEl.bind 'canplaythrough', (ev) =>
+            sample = $(ev.target)
+            sample.data('state', 'ready').unbind()
+            this.trigger 'sampleloaded'
+            console.log "Player loaded " + ev.target.src + "!"
+            # Sample should take note of when it is done playing
+            sample.bind 'ended', (ev) -> $(ev.target).data 'state', 'ready'
+            # Are we done preparing yet?
+            if this.numSamplesLoading() == 0
+              @state = 'ready'
+              this.trigger 'ready'
+              console.log "Player ready"
+          console.log "Player loading " + filename
+          audioEl[0]
+    @state = "preparing"
+
+  numSamplesLoading: ->
+    (1 for el in _.flatten(@samples) when $(el).data('state') == 'loading').length
+
+  readyElementForSample: (filename) ->
+    for el in @samples[filename]
+      return el if $(el).data('state') == 'ready'
+    console.log "Player sample elements exhausted for " + filename
+    # TODO Pick one to restart?
+    return null
+
+  playSound: (instrument, sound) ->
+    if sample = this.readyElementForSample(instrument.filename(sound, @format))
+      $(sample).data 'state', 'playing'
+      needsPlaying = sample.currentTime == 0
+      sample.currentTime = 0
+      sample.play() if needsPlaying
+
+
+# A player using the popular SoundManager2 flash hack :)
+class SoundManagerPlayer extends Player
+  format: "mp3"
+
+  constructor: ->
+    super
+    @sm = window.soundManager
+    @samplesLoading = 0
+
+  prepare: (callback) ->
+    @state = "preparing"
+
+    @sm.ontimeout ->
+      @state = "broken"
+      new ErrorView "Your platform requires Flash to play audio reliably, but Flash failed to load. Please disable any Flash blocker and reload the page."
+
+    @sm.onready =>
+      console.log "sm is ready"
+      for key, instrument of window.instruments
+        for sound in instrument.soundsForScale(@scale)
+          filename = instrument.filename(sound, @format)
+          @samplesLoading += 1
+          @sm.createSound {
+            id: filename,
+            url: filename,
+            autoLoad: true,
+            autoPlay: false,
+            volume: 50,
+            onload: =>
+              @samplesLoading -= 1
+              console.log "SM loaded " + filename + "!"
+              this.trigger 'sampleloaded'
+              if @samplesLoading == 0
+                @state = 'ready'
+                this.trigger 'ready'
+                console.log "Player ready"
+          }
+
+  numSamplesLoading: ->
+    return @samplesLoading
+
+  playSound: (instrument, sound) ->
+    @sm.play instrument.filename(sound, @format)
+
+
+# XXX Move these somewhere more reasonable
+window.soundManager.url = '/swf/' if window.soundManager?
+window.soundManager.flashVersion = 9;
+window.soundManager.useHighPerformance = true;
+window.soundManager.useConsole = false;
+window.soundManager.debugMode = false;
+
 $ ->
   window.console = { log: -> } if !window.console?
   console.log "Initializing"
-  window.player = new Player
+  window.player = new SoundManagerPlayer
   window.client = new Client
   new LoadingView

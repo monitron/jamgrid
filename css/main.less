@@ -1,6 +1,7 @@
 
 @baseColor: #8abd52;
 @accentColor: #eee;
+@errorColor: red;
 @margin: 10px;
 @radius: 6px;
 @masterWidth: 980px;
@@ -21,6 +22,7 @@ BODY {
 #outer {
 	width: @masterWidth;
 	margin: 0 auto;
+  overflow: hidden;
 }
 
 H1, H2, H3 {
@@ -62,10 +64,11 @@ H1 {
 
 #all {
 	margin: @margin;
+  overflow: hidden;
 }
 
 UL.errors {
-	background-color: red;
+	background-color: @errorColor;
 	color: white;
 	padding: @margin;
 	border-radius: 5px;
@@ -84,10 +87,11 @@ UL.errors {
 			width: 22px;
 			height: 22px;
 			&.label {
-				padding: 0px 20px;
-				font-weight:bold;
-				width: 80px;
-				text-align: right;
+				width: 30px;
+				IMG {
+					position: relative;
+					top: 2px;
+				}
 			}
 			&.current {
 				background-color: @accentColor;
@@ -108,11 +112,11 @@ UL.errors {
 }
 
 #jam {
-	width: 700px;
+	width: 603px;
 	float: left;
 }
 #social {
-	width: @contentWidth - 700px - @margin;
+	width: @contentWidth - 603px - @margin;
 	margin-left: 10px;
 	float: left;
 }
@@ -144,7 +148,7 @@ UL.instruments {
 
 
 .modalCurtain {
-	position: absolute;
+	position: fixed;
 	left: 0;
 	top: 0;
 	bottom: 0;
@@ -155,7 +159,7 @@ UL.instruments {
 }
 
 .modalContainer {
-	position: absolute;
+	position: fixed;
 	left: 0;
 	top: 0;
 	bottom: 0;
@@ -169,6 +173,9 @@ UL.instruments {
 	z-index: 101;
 	border-radius: @radius;
 	.box-shadow(0, 0, 15px, 0.4);
+  &.error {
+    border-color: @errorColor;
+  }
 	P {
 		font-size: 18px;
 	}
