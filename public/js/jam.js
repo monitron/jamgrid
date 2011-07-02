@@ -1,5 +1,5 @@
 (function() {
-  var Client, ErrorView, HTML5Player, Instrument, Jam, JamView, LoadingView, ModalView, PartView, PercussionInstrument, PitchedInstrument, Player, SoundManagerPlayer, _i, _results;
+  var ChatView, Client, ErrorView, HTML5Player, Instrument, Jam, JamView, LoadingView, ModalView, PartView, PercussionInstrument, PitchedInstrument, Player, SoundManagerPlayer, _i, _results;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
@@ -177,7 +177,18 @@
     JamView.prototype.initialize = function() {
       return _.defer(__bind(function() {
         this.render();
-        return this.editPart("epiano");
+        window.player.bind('playing', __bind(function() {
+          this.$('.playButton').hide();
+          return this.$('.stopButton').show();
+        }, this));
+        window.player.bind('stopping', __bind(function() {
+          this.$('.playButton').show();
+          return this.$('.stopButton').hide();
+        }, this));
+        this.editPart("epiano");
+        return this.chatView = new ChatView({
+          el: this.$('.chat')
+        });
       }, this));
     };
     JamView.prototype.events = {
@@ -206,21 +217,34 @@
       return window.player.stop();
     };
     JamView.prototype.render = function() {
-      var buttons, instrument, instruments, key, _ref;
+      var bar, editor, instrument, instruments, key, _ref;
       instruments = $('<ul />').addClass('instruments');
       _ref = window.instruments;
       for (key in _ref) {
         instrument = _ref[key];
         instruments.append($('<li />').html(instrument.name).attr('data-key', instrument.key));
       }
-      buttons = $('<div />');
-      buttons.append($('<button />').html('Play').addClass('playButton'));
-      buttons.append($('<button />').html('Stop').addClass('stopButton'));
-      $(this.el).html(instruments);
-      $(this.el).append($('<div />').addClass('part'));
-      return $(this.el).append(buttons);
+      editor = $('<div />').addClass('editor').html(instruments);
+      editor.append($('<div />').addClass('part'));
+      bar = $('<div />').addClass('controls');
+      bar.append($('<button />').html('Play').addClass('playButton'));
+      bar.append($('<button />').html('Stop').addClass('stopButton').hide());
+      return $(this.el).html(bar).append(editor).append($('<div />').addClass('chat'));
     };
     return JamView;
+  })();
+  ChatView = (function() {
+    __extends(ChatView, Backbone.View);
+    function ChatView() {
+      ChatView.__super__.constructor.apply(this, arguments);
+    }
+    ChatView.prototype.initialize = function() {
+      return this.render();
+    };
+    ChatView.prototype.render = function() {
+      return $(this.el).html($('<div />').addClass('received'));
+    };
+    return ChatView;
   })();
   PartView = (function() {
     __extends(PartView, Backbone.View);
@@ -241,6 +265,9 @@
       this.render();
       window.player.bind('beat', __bind(function(num) {
         return this.setCurrentBeat(num);
+      }, this));
+      window.player.bind('stopping', __bind(function() {
+        return this.setCurrentBeat(null);
       }, this));
       this.jam.bind('change:parts', __bind(function() {
         return this.populateFromJam();
@@ -314,7 +341,9 @@
     };
     PartView.prototype.setCurrentBeat = function(beat) {
       this.$("td").removeClass('current');
-      return this.$("td[data-beat=" + beat + "]").addClass('current');
+      if (beat != null) {
+        return this.$("td[data-beat=" + beat + "]").addClass('current');
+      }
     };
     PartView.prototype.updateModel = function() {
       var cell, n, part, _j, _len, _ref;
@@ -433,6 +462,7 @@
         return;
       }
       this.state = "playing";
+      this.trigger("playing");
       console.log("Player playing");
       this.beginPattern();
       this.lastBeat = 0;
@@ -446,6 +476,7 @@
         return;
       }
       this.state = "ready";
+      this.trigger('stopping');
       return clearInterval(this.tickIntervalID);
     };
     return Player;

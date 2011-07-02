@@ -91,7 +91,14 @@ class JamView extends Backbone.View
   initialize: ->
     _.defer => # Give others a chance to bind events first
       this.render()
+      window.player.bind 'playing', =>
+        this.$('.playButton').hide()
+        this.$('.stopButton').show()
+      window.player.bind 'stopping', =>
+        this.$('.playButton').show()
+        this.$('.stopButton').hide()
       this.editPart "epiano"
+      @chatView = new ChatView {el: this.$('.chat')}
 
   events:
     "click .playButton":     "play"
@@ -116,12 +123,20 @@ class JamView extends Backbone.View
     instruments = $('<ul />').addClass('instruments')
     for key, instrument of window.instruments
       instruments.append $('<li />').html(instrument.name).attr('data-key', instrument.key)
-    buttons = $('<div />')
-    buttons.append $('<button />').html('Play').addClass('playButton')
-    buttons.append $('<button />').html('Stop').addClass('stopButton')
-    $(@el).html instruments
-    $(@el).append $('<div />').addClass('part')
-    $(@el).append buttons
+    editor = $('<div />').addClass('editor').html(instruments)
+    editor.append $('<div />').addClass('part')
+    bar = $('<div />').addClass('controls')
+    bar.append $('<button />').html('Play').addClass('playButton')
+    bar.append $('<button />').html('Stop').addClass('stopButton').hide()
+    $(@el).html(bar).append(editor).append($('<div />').addClass('chat'))
+
+
+class ChatView extends Backbone.View
+  initialize: ->
+    this.render()
+
+  render: ->
+    $(@el).html($('<div />').addClass('received'))
 
 
 class PartView extends Backbone.View
@@ -133,6 +148,7 @@ class PartView extends Backbone.View
     @sounds = @instrument.soundsForScale(@scale)
     this.render()
     window.player.bind 'beat', (num) => this.setCurrentBeat(num)
+    window.player.bind 'stopping', => this.setCurrentBeat(null)
     @jam.bind 'change:parts', => this.populateFromJam()
     this.populateFromJam()
 
@@ -183,7 +199,7 @@ class PartView extends Backbone.View
 
   setCurrentBeat: (beat) ->
     this.$("td").removeClass('current')
-    this.$("td[data-beat=" + beat + "]").addClass('current')
+    this.$("td[data-beat=" + beat + "]").addClass('current') if beat?
 
   # Serialize the pattern and set it in our jam
   updateModel: ->
@@ -266,6 +282,7 @@ class Player
       console.log "Player isn't ready to play"
       return
     @state = "playing"
+    this.trigger "playing"
     console.log "Player playing"
     this.beginPattern()
     @lastBeat = 0
@@ -278,6 +295,7 @@ class Player
       console.log "Player can't stop - it isn't playing"
       return
     @state = "ready"
+    this.trigger 'stopping'
     clearInterval @tickIntervalID
 
 
